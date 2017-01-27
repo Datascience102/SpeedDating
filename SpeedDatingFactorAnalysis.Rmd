@@ -1,6 +1,6 @@
 ---
 title: "SpeedDating factor analysis"
-author: "T. Evgeniou; adapted by team, Mat has a small dick"
+author: "T. Evgeniou; adapted by team, Mat has a small dick :-)"
 output:
   html_document:
     css: styles/default.css
