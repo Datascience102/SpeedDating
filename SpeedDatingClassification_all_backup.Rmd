@@ -125,10 +125,22 @@ rownames(Profit_Matrix) <- c("Actual 1", "Actual 0")
 test_data_percent = 100-estimation_data_percent-validation_data_percent
 CART_control = rpart.control(cp = CART_cp)
 
+
 ```
 
 
-# Classification using speed dating dataset
+# What is this for?
+
+A bank is interested in knowing which customers are likely to default on loan payments. The bank is also interested in knowing what characteristics of customers may explain their loan payment behavior. An advertiser is interested in choosing the set of customers or prospects who are most likely to respond to a direct mail campaign. The advertiser is also interested in knowing what characteristics of consumers are most likely to explain responsiveness to the campaign. A procurement manager is interested in knowing which orders will most likely be delayed, based on recent behavior of the suppliers. An investor is interested in knowing which assets are most likely to increase in value. 
+
+Classification (or categorization) techniques are useful to help answer such questions. They help predict the group membership (or class - hence called **classification techniques**) of individuals (data), for **predefined group memberships** (e.g. "success" vs "failure" for **binary** classification, the focus of this note), and also to describe which characteristics of individuals can predict their group membership. Examples of group memberships/classes could be: (1) loyal customers versus customers who will churn; (2) high price sensitive versus low price sensitive customers; (3) satisfied versus dissatisfied customers; (4) purchasers versus non-purchasers; (5) assets that increase in value versus not; (6) products that may be good recommendations to a customer versus not, etc. Characteristics that are useful in classifying individuals/data into predefined groups/classes could include for example (1) demographics; (2) psychographics; (3) past behavior; (4) attitudes towards specific products, (5) social network data,  etc. 
+
+There are many techniques for solving classification problems: classification trees, logistic regression, discriminant analysis, neural networks, boosted trees, random forests, deep learning methods, nearest neighbors, support vector machines, etc, (e.g. see the R package "e1071" for more example methods). 
+There are also many <a href="https://cran.r-project.org/web/views/MachineLearning.html">  R packages </a> for everything developed in the past - including the "fashionable" methods on <a href="http://deeplearning.netl">  deep learning </a>  - see various news <a href="http://www.bloomberg.com/news/articles/2015-12-08/why-2015-was-a-breakthrough-year-in-artificial-intelligence">   here </a> or <a href="http://www.bloomberg.com/news/articles/2015-12-08/why-2015-was-a-breakthrough-year-in-artificial-intelligence">   here </a>  or <a href="http://www.forbes.com/sites/anthonykosner/2014/12/29/tech-2015-deep-learning-and-machine-intelligence-will-eat-the-world/#3e2e74bf282c">   here </a> for example. Microsoft also has a large collection of methods they <a href="https://azure.microsoft.com/en-us/documentation/articles/machine-learning-algorithm-choice/">  they develop. </a> In this report, for simplicity  we focus on the first two, although one can always use some of the other methods instead of the ones discussed here. The focus of this note is not do explain any specific ("black box, math") classification method, but to describe a process for classification independent of the method used (e.g. independent of the method selected in one of the steps in the process outlined below).
+
+An important question when using classification methods is to assess the relative performance of all available methods/models i.e. in order to use the best one according to our criteria. To this purpose there are standard performance **classification assessment metrics**, which we discuss below - this is a key focus of this note.  
+
+# Classification using an Example
 
 ## The "Business Decision"
 
@@ -139,6 +151,14 @@ The team believed that in order to develop a strategy for North America, they ne
 The company would like to understand who would be the most likely customers to purchase a boat in the future or to recommend their brand, as well as what would be the **key purchase drivers** that affect people's decision to purchase or recommend. 
 
 ## The Data
+
+With the aid of a market research firm, the boating company gathered various data about the boating market in the US through interviews with almost 3,000 boat owners and intenders. The data consisted, among others, of 29 attitudes towards boating, which respondents indicated on a 5-point scale. They are listed below. Other types of information had been collected, such as demographics as well as information about the boats, such as the length of the boat they owned, how they used their boats, and the price of the boats. 
+
+After analyzing the survey data (using for example factor and cluster analysis), the company managers decided to only focus on a few purchase drivers which they thought were the most important ones. They decided to perform the classification and purchase drivers analysis using only the responses to the following questions:
+
+Name   | Description
+:------|:--------------------------------------------------------------------
+
 
 Let's get the data and see it for a few customers. This is how the first `r min(max_data_report, nrow(ProjectData))` out of the total of `r nrow(ProjectData)` rows look:
 
@@ -385,24 +405,6 @@ log_coefficients <- round(summary(logreg_solution)$coefficients,1)
 knitr::kable(round(log_coefficients,2))
 ```
 
-
-**Random forests** is another technique that was used...
-
-```{r}
-cols <- colnames(ProjectData)
-selected <- cols[c(dependent_variable, independent_variables)]
-forestFit <- randomForest(as.factor(dec_o) ~ ., data=estimation_data[, selected], importance=TRUE)
-
-varImpPlot(forestFit)
-
-estimation_prediction_random_forests <- predict(forestFit, estimation_data[,independent_variables])
-validation_prediction_random_forests <- predict(forestFit, validation_data[, independent_variables])
-test_prediction_random_forests <- predict(forestFit, validation_data[, independent_variables])
-
-validation_Probability_random_forests <- predict(forestFit, validation_data[, independent_variables], type = "prob")[,2]
-```
-
-
 Given a set of independent variables, the output of the estimated logistic regression (the sum of the products of the independent variables with the corresponding regression coefficients) can be used to assess the probability an observation belongs to one of the classes. Specifically, the regression output can be transformed into a probability of belonging to, say, class 1 for each observation. In our case, the probability our validation data belong to class 1 (e.g. the customer is likely to purchase a boat) for the first few validation data observations, using the logistic regression above, is:
 
 ```{r}
@@ -448,11 +450,8 @@ large_tree_importance_final[large_tree_ordered_drivers] <- large_tree_importance
 large_tree_importance_final <- large_tree_importance_final/max(abs(large_tree_importance_final))
 large_tree_importance_final <- large_tree_importance_final*sign(log_importance)
 
-forests_importance <- importance(forestFit, type=1)
-forests_importance <- forests_importance/max(abs(forests_importance))
-
-Importance_table <- cbind(tree_importance_final,large_tree_importance_final, log_importance, forests_importance)
-colnames(Importance_table) <- c("CART 1", "CART 2", "Logistic Regr.", "Random Forests")
+Importance_table <- cbind(tree_importance_final,large_tree_importance_final, log_importance)
+colnames(Importance_table) <- c("CART 1", "CART 2", "Logistic Regr.")
 rownames(Importance_table) <- rownames(log_importance)
 ## printing the result in a clean-slate table
 knitr::kable(round(Importance_table,2))
@@ -476,16 +475,14 @@ This is simply the percentage of the observations that have been correctly class
 validation_actual=validation_data[,dependent_variable]
 validation_predictions = rbind(validation_prediction_class_tree,
                                validation_prediction_class_tree_large,
-                               validation_prediction_class_log,
-                               validation_prediction_random_forests)
+                               validation_prediction_class_log)
 validation_hit_rates = rbind(
   100*sum(validation_prediction_class_tree==validation_actual)/length(validation_actual), 
   100*sum(validation_prediction_class_tree_large==validation_actual)/length(validation_actual), 
-  100*sum(validation_prediction_class_log==validation_actual)/length(validation_actual),
-  100*sum(validation_prediction_random_forests==validation_actual)/length(validation_actual)
+  100*sum(validation_prediction_class_log==validation_actual)/length(validation_actual)
   )
 colnames(validation_hit_rates) <- "Hit Ratio"
-rownames(validation_hit_rates) <- c("First CART", "Second CART", "Logistic Regression", "Random Forests")
+rownames(validation_hit_rates) <- c("First CART", "Second CART", "Logistic Regression")
 knitr::kable(validation_hit_rates)
 ```
 
@@ -494,16 +491,14 @@ while for the estimation data the hit rates are:
 estimation_actual=estimation_data[,dependent_variable]
 estimation_predictions = rbind(estimation_prediction_class_tree,
                                estimation_prediction_class_tree_large,
-                               estimation_prediction_class_log,
-                               estimation_prediction_random_forests)
+                               estimation_prediction_class_log)
 estimation_hit_rates = rbind(
   100*sum(estimation_prediction_class_tree==estimation_actual)/length(estimation_actual), 
   100*sum(estimation_prediction_class_tree_large==estimation_actual)/length(estimation_actual), 
-  100*sum(estimation_prediction_class_log==estimation_actual)/length(estimation_actual),
-  100*sum(estimation_prediction_random_forests==estimation_actual)/length(estimation_actual)
+  100*sum(estimation_prediction_class_log==estimation_actual)/length(estimation_actual)
   )
 colnames(estimation_hit_rates) <- "Hit Ratio"
-rownames(estimation_hit_rates) <- c("First CART", "Second CART", "Logistic Regression", "Random Forests")
+rownames(estimation_hit_rates) <- c("First CART", "Second CART", "Logistic Regression")
 knitr::kable(estimation_hit_rates)
 ```
 
@@ -632,22 +627,10 @@ frame4 <- data.frame(
   check.names = FALSE
 )
 
-probs <- validation_Probability_random_forests
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  c(length(useonly)/length(validation_actual), sum(validation_actual[useonly])/all1s) 
-}))
-frame5 <- data.frame(
-  `rand forests % of validation data` = res[1,],
-  `rand forests % of class 1` = res[2,],
-  check.names = FALSE
-)
-
 # we can plot the curves individually here, but we're going to combine them below, instead
 # grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
 
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4, frame5), function(df) {
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub(" % of class 1", "", df$variable)
   colnames(df)[1] <- "Percent of validation data"
@@ -759,17 +742,14 @@ Let's see in our case how the **Confusion Matrix, ROC Curve, Lift Curve, and Pro
 test_actual=test_data[,dependent_variable]
 test_predictions = rbind(test_prediction_class_tree,
                          test_prediction_class_tree_large,
-                         test_prediction_class_log,
-                         test_prediction_random_forests)
-
+                         test_prediction_class_log)
 test_hit_rates = rbind(
   100*sum(test_prediction_class_tree==test_actual)/length(test_actual), 
   100*sum(test_prediction_class_tree_large==test_actual)/length(test_actual), 
-  100*sum(test_prediction_class_log==test_actual)/length(test_actual),
-  100*sum(test_prediction_random_forests==test_actual)/length(test_actual)
+  100*sum(test_prediction_class_log==test_actual)/length(test_actual)
   )
 colnames(test_hit_rates) <- "Hit Ratio"
-rownames(test_hit_rates) <- c("First CART", "Second CART", "Logistic Regression", "Random Forests")
+rownames(test_hit_rates) <- c("First CART", "Second CART", "Logistic Regression")
 
 knitr::kable(test_hit_rates)
 ```
@@ -783,7 +763,7 @@ conf_matrix[1,1]<- 100*sum(test_prediction_best*test_data[,dependent_variable])/
 conf_matrix[1,2]<- 100*sum((!test_prediction_best)*test_data[,dependent_variable])/sum(test_data[,dependent_variable])
 conf_matrix[2,1]<- 100*sum((!test_prediction_best)*(!test_data[,dependent_variable]))/sum((!test_data[,dependent_variable]))
 conf_matrix[2,2]<- 100*sum((test_prediction_best)*(!test_data[,dependent_variable]))/sum((!test_data[,dependent_variable]))
-conf_matrix = round(conf_matrix,0)
+conf_matrix = round(conf_matrix,2)
 
 colnames(conf_matrix) <- c("Predicted 1", "Predicted 0")
 rownames(conf_matrix) <- c("Actual 1", "Actual 0")
