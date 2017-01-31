@@ -50,11 +50,12 @@ cluster_file_ini = "Boats_cluster" # make sure this file exists in the "data" di
 # Please ENTER the class (dependent) variable:
 # Please use numbers, not column names! e.g. 82 uses the 82nd column are dependent variable.
 # YOU NEED TO MAKE SURE THAT THE DEPENDENT VARIABLES TAKES ONLY 2 VALUES: 0 and 1!!!
-dependent_variable= 13
+dependent_variable= 12 # match: 2; decision_o: 12
 
 # Please ENTER the attributes to use as independent variables 
 # Please use numbers, not column names! e.g. c(1:5, 7, 8) uses columns 1,2,3,4,5,7,8
-independent_variables= c(1:61) # use 54-80 for boats
+#independent_variables= c(3:11, 13:18, 21:45) 
+independent_variables= c(13:18, 23:45) 
 
 # Please ENTER the profit/cost values for the correctly and wrong classified data:
 actual_1_predict_1 = 100
@@ -78,25 +79,30 @@ random_sampling = 0
 CART_cp = 0.01
 
 # Please enter the minimum size of a segment for the analysis to be done only for that segment
-min_segment = 100
+min_segment = 50
 
 # Please enter the maximum number of observations to show in the report and slides 
 # (DEFAULT is 50. If the number is large the report and slides may not be generated - very slow or will crash!!)
-max_data_report = 10 # can also chance in server.R
+max_data_report = 20 # can also chance in server.R
 
-datafile_name= "data/SpeedDatingData_clean_mw.csv"
+datafile_name= "data/SpeedDatingData_classification.csv"
 
 Probability_Threshold = Probability_Threshold/100 # make it between 0 and 1
 
 ProjectData <- read.delim(file = datafile_name, sep = ";")
-ProjectData <- data.matrix(ProjectData[,independent_variables]) 
+
+ProjectData <- data.matrix(ProjectData[,]) 
+# (female - 0; male - 1; 2 - all)
+gender <- 1 # ie. 0 means that males make a decision; 1 means that females make a decision
+
+if (gender == 0 || gender == 1) {
+  ProjectData <- ProjectData[which(ProjectData[,1]==gender),]
+}
 
 # remove rows with empty cells
-ProjectData_clean <- ProjectData[rowSums(is.na(ProjectData)) == 0,]
+ProjectData <- ProjectData[rowSums(is.na(ProjectData)) == 0,]
 
-ProjectData_INITIAL <- ProjectData_clean
-
-ProjectData <- ProjectData_clean
+ProjectData_INITIAL <- ProjectData
 
 # if (datafile_name == "Boats")
 #   colnames(ProjectData)<-gsub("\\."," ",colnames(ProjectData))
@@ -301,6 +307,7 @@ Running a basic CART model with complexity control cp=`r CART_cp`,  leads to the
 
 ```{r}
 # just name the variables numerically so that they look ok on the tree plots
+
 independent_variables_nolabel = paste("IV", 1:length(independent_variables), sep="")
 
 estimation_data_nolabel = cbind(estimation_data[,dependent_variable], estimation_data[,independent_variables])
@@ -321,9 +328,17 @@ validation_data = data.frame(validation_data)
 test_data = data.frame(test_data)
 
 formula=paste(colnames(estimation_data)[dependent_variable],paste(Reduce(paste,sapply(head(independent_variables_nolabel,-1), function(i) paste(i,"+",sep=""))),tail(independent_variables_nolabel,1),sep=""),sep="~")
+
 CART_tree<-rpart(formula, data= estimation_data_nolabel,method="class", control=CART_control)
 
 rpart.plot(CART_tree, box.palette="OrBu", type=3, extra=1, fallen.leaves=F, branch.lty=3)
+
+labels = colnames(ProjectData)[c(independent_variables)]
+
+for (x in names(CART_tree$variable.importance)) {
+  y <- paste(x, labels[as.numeric(gsub("\\IV"," ",x))], sep = ": ")
+  print(y)
+}
 ```
 
 The leaves of the tree indicate the number of estimation data observations that belong to each class which "reach that leaf" as well as the pecentage of all data points that reach the leaf. A perfect classification would only have data from one class in each of the tree leaves. However, such a perfect classification of the estimation data would most likely not be able to classify well out-of-sample data due to over-fitting of the estimation data.
@@ -333,6 +348,13 @@ One can estimate larger trees through changing the tree's **complexity control**
 ```{r}
 CART_tree_large<-rpart(formula, data= estimation_data_nolabel,method="class", control=rpart.control(cp = 0.005))
 rpart.plot(CART_tree_large, box.palette="OrBu", type=3, extra=1, fallen.leaves=F, branch.lty=3)
+
+labels = colnames(ProjectData)[c(independent_variables)]
+
+for (x in names(CART_tree_large$variable.importance)) {
+  y <- paste(x, labels[as.numeric(gsub("\\IV"," ",x))], sep = ": ")
+  print(y)
+}
 ```
 
 One can also use the percentage of data in each leaf of the tree to have an estimated probability that an observation (e.g. person) belongs to a given class.  The **purity of the leaf** can indicate the probability an observation which "reaches that leaf" belongs to a class. In our case, the probability our validation data belong to class 1 (e.g. the customer is likely to purchase a boat) for the first few validation data observations, using the first CART above, is:
@@ -412,6 +434,7 @@ log_importance = log_importance/max(abs(log_importance))
 
 tree_importance = CART_tree$variable.importance
 tree_ordered_drivers = as.numeric(gsub("\\IV"," ",names(CART_tree$variable.importance)))
+
 tree_importance_final = rep(0,length(independent_variables))
 tree_importance_final[tree_ordered_drivers] <- tree_importance
 tree_importance_final <- tree_importance_final/max(abs(tree_importance_final))
@@ -529,10 +552,14 @@ df3<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@y.values))
 colnames(df3) <- c("False Positive rate CART 2", "True Positive CART 2")
 plot3 <- ggplot(df3, aes(x=`False Positive rate CART 2`, y=`True Positive CART 2`)) + geom_line()
 
+df4<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@x.values))
+colnames(df4) <- c("False Positive rate y=x", "True Positive y=x")
+
+
 # we can plot the curves individually here, but we're going to combine them below, instead
 # grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
 
-df.all <- do.call(rbind, lapply(list(df1, df2, df3), function(df) {
+df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub("True Positive ", "", df$variable)
   colnames(df)[1] <- "False Positive rate"
@@ -590,12 +617,18 @@ frame3 <- data.frame(
   `log reg % of class 1` = res[2,],
   check.names = FALSE
 )
-plot3 <- ggplot(frame3, aes(x=`log reg % of validation data`, y=`log reg % of class 1`)) + geom_line()
+plot3 <- ggplot(frame3, aes(x=`y=x % of validation data`, y=`y=x % of class 1`)) + geom_line()
+
+frame4 <- data.frame(
+  `y=x % of validation data` = res[1,],
+  `y=x % of class 1` = res[1,],
+  check.names = FALSE
+)
 
 # we can plot the curves individually here, but we're going to combine them below, instead
 # grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
 
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3), function(df) {
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub(" % of class 1", "", df$variable)
   colnames(df)[1] <- "Percent of validation data"
@@ -754,7 +787,10 @@ test3<-performance(pred_log_test, "tpr", "fpr")
 df3<- cbind(as.data.frame(test1@x.values),as.data.frame(test1@y.values))
 colnames(df3) <- c("False Positive rate log reg", "True Positive log reg")
 
-df.all <- do.call(rbind, lapply(list(df1, df2, df3), function(df) {
+df4<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@x.values))
+colnames(df4) <- c("False Positive rate y=x", "True Positive y=x")
+
+df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub("True Positive ", "", df$variable)
   colnames(df)[1] <- "False Positive rate"
@@ -805,7 +841,13 @@ frame3 <- data.frame(
   check.names = FALSE
 )
 
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3), function(df) {
+frame4 <- data.frame(
+  `y=x % of validation data` = res[1,],
+  `y=x % of class 1` = res[1,],
+  check.names = FALSE
+)
+
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub(" % of class 1", "", df$variable)
   colnames(df)[1] <- "Percent of test data"

@@ -1,0 +1,19 @@
+---
+title: "Speed Dating"
+author: "Team"
+date: "1/30/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Table of contents
+
+1. TBD
+2. TBD
+3. <a href="SpeedDatingClassification_all.html">Classification (general population)</a>
+4. <a href="SpeedDatingClassification_w.html">Classification - factors important for women</a>
+5. <a href="SpeedDatingClassification_m.html">Classification - factors important for men</a>
+6. Segmentation-dependent classification (TBD)
