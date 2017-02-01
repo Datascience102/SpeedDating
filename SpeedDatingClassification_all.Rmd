@@ -127,12 +127,11 @@ CART_control = rpart.control(cp = CART_cp)
 
 ```
 
-
 # Classification using speed dating dataset
 
 ## The "Business Decision"
 
-We would like to understand who would be the most likely speed dating targets to succeed as well as what would be the **key drivers** that affect people's decision in selecting. 
+We would like to understand who would be the most likely champion of speed dating as well as what would be the **key drivers** that affect people's decision in selecting. 
 
 ## The Data
 
@@ -192,7 +191,7 @@ In our case we use `r nrow(estimation_data)` observations in the estimation data
 
 ## Step 2: Choose dependent variable
 
-Our dependent variable is: `r colnames(ProjectData)[dependent_variable]`. It states whether given subject was selected by the  .In our data the number of 0/1's in our estimation sample is as follows.
+Our dependent variable is: `r colnames(ProjectData)[dependent_variable]`. It states whether given subject was selected by the partner. In our data the number of 0/1's in our estimation sample is as follows.
 
 ```{r}
 class_percentages=matrix(c(sum(estimation_data[,dependent_variable]==1),sum(estimation_data[,dependent_variable]==0)), nrow=1); colnames(class_percentages)<-c("Class 1", "Class 0")
@@ -282,6 +281,11 @@ rpart.plot(CART_tree, box.palette="OrBu", type=3, extra=1, fallen.leaves=F, bran
 
 labels = colnames(ProjectData)[c(independent_variables)]
 
+```
+
+Where the key decisions criteria could be explained by the following table.
+
+```{r}
 y <- matrix(nrow = length(names(CART_tree$variable.importance)), ncol = 2)
 i <- 0
 for (x in names(CART_tree$variable.importance)) {
@@ -361,7 +365,7 @@ log_coefficients <- round(summary(logreg_solution)$coefficients,1)
 knitr::kable(round(log_coefficients,2))
 ```
 
-**Random forests** is the last technique that we used. 
+**Random forests** is the last method that we used. Below is the overview of key success factors when it comes to speed dating decision making.
 
 ```{r}
 cols <- colnames(ProjectData)
@@ -380,30 +384,7 @@ test_Probability_random_forests <- predict(forestFit, test_data[, independent_va
 
 ```
 
-Given a set of independent variables, the output of the estimated logistic regression (the sum of the products of the independent variables with the corresponding regression coefficients) can be used to assess the probability an observation belongs to one of the classes. Specifically, the regression output can be transformed into a probability of belonging to, say, class 1 for each observation. In our case, the probability our validation data belong to class 1 (e.g. the customer is likely to purchase a boat) for the first few validation data observations, using the logistic regression above, is:
-
-```{r}
-# Let's get the probabilities for the 3 types of data again
-estimation_Probability_class1_log<-predict(logreg_solution, type="response", newdata=estimation_data[,independent_variables])
-validation_Probability_class1_log<-predict(logreg_solution, type="response", newdata=validation_data[,independent_variables])
-test_Probability_class1_log<-predict(logreg_solution, type="response", newdata=test_data[,independent_variables])
-
-estimation_prediction_class_log=1*as.vector(estimation_Probability_class1_log > Probability_Threshold)
-validation_prediction_class_log=1*as.vector(validation_Probability_class1_log > Probability_Threshold)
-test_prediction_class_log=1*as.vector(test_Probability_class1_log > Probability_Threshold)
-
-Classification_Table=rbind(validation_data[,dependent_variable],validation_Probability_class1_log)
-rownames(Classification_Table)<-c("Actual Class","Probability of Class 1")
-colnames(Classification_Table)<- paste("Obs", 1:ncol(Classification_Table), sep=" ")
-
-knitr::kable(head(t(round(Classification_Table,2)), max_data_report))
-```
-
-The default decision is to classify each observation in the group with the highest probability - but one can change this choice, as we discuss below. 
-
-Selecting the best subset of independent variables for logistic regression, a special case of the general problem of **feature selection**, is an iterative process where both the significance of the regression coefficients as well as the performance of the estimated logistic regression model on the first validation data are used as guidance. A number of variations are tested in practice, each leading to different performances, which we discuss next. 
-
-In our case, we can see the relative importance of the independent variables using the `variable.importance` of the CART trees (see `help(rpart.object)` in R) or the z-scores from the output of logistic regression. For easier visualization, we scale all values between -1 and 1 (the scaling is done for each method separately - note that CART does not provide the sign of the "coefficients"). From this table we can see the **key drivers** of the classification according to each of the methods we used here. 
+Beloow table shows us **key drivers** of the classification according to each of the used methods. 
 
 ```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE, results='asis'}
 log_importance = tail(log_coefficients[,"z value", drop=F],-1) # remove the intercept
@@ -435,9 +416,26 @@ rownames(Importance_table) <- rownames(log_importance)
 knitr::kable(round(Importance_table,2))
 ```
 
-In general it is not necessary for all methods to agree on the most important drivers: when there is "major" disagreement, particularly among models that have satisfactory performance as discussed next, we may need to reconsider the overall analysis, including the objective of the analysis as well as the data used, as the results may not be robust. **As always, interpreting and using the results of data analytics requires a balance between quantitative and qualitative analysis.** 
+In general we do not see very significant differences across all used methods which makes sense.
 
 ## Step 5: Validation accuracy 
+
+```{r}
+# Let's get the probabilities for the 3 types of data again
+estimation_Probability_class1_log<-predict(logreg_solution, type="response", newdata=estimation_data[,independent_variables])
+validation_Probability_class1_log<-predict(logreg_solution, type="response", newdata=validation_data[,independent_variables])
+test_Probability_class1_log<-predict(logreg_solution, type="response", newdata=test_data[,independent_variables])
+
+estimation_prediction_class_log=1*as.vector(estimation_Probability_class1_log > Probability_Threshold)
+validation_prediction_class_log=1*as.vector(validation_Probability_class1_log > Probability_Threshold)
+test_prediction_class_log=1*as.vector(test_Probability_class1_log > Probability_Threshold)
+
+Classification_Table=rbind(validation_data[,dependent_variable],validation_Probability_class1_log)
+rownames(Classification_Table)<-c("Actual Class","Probability of Class 1")
+colnames(Classification_Table)<- paste("Obs", 1:ncol(Classification_Table), sep=" ")
+
+#knitr::kable(head(t(round(Classification_Table,2)), max_data_report))
+```
 
 ### 1.  Hit ratio
 
@@ -478,11 +476,13 @@ rownames(estimation_hit_rates) <- c("First CART", "Second CART", "Logistic Regre
 knitr::kable(estimation_hit_rates)
 ```
 
-A simple benchmark to compare the performance of a classification model against is the **Maximum Chance Criterion**. This measures the proportion of the class with the largest size. For our validation data the largest group is people who do not intent do purchase a boat: `r sum(!validation_actual)` out of `r length(validation_actual)` people). Clearly without doing any discriminant analysis, if we classified all individuals into the largest group,  we could get a hit-rate of `r round(100*sum(!validation_actual)/length(validation_actual), 2)`% - without doing any work. One should have a hit rate of at least as much as the the Maximum Chance Criterion rate, although as we discuss next there are more performance criteria to consider. 
+A simple benchmark to compare the performance of a classification model against is the **Maximum Chance Criterion**. This measures the proportion of the class with the largest size. For our validation data the largest group is people who do not intent do purchase a boat: `r sum(!validation_actual)` out of `r length(validation_actual)` people). Clearly without doing any discriminant analysis, if we classified all individuals into the largest group,  we could get a hit-rate of `r round(100*sum(!validation_actual)/length(validation_actual), 2)`% - without doing any work. 
+
+In our case this particular criterion is met for all the methods that were used.
 
 ### 2. Confusion matrix
 
-The confusion matrix shows for each class the number (or percentage) of the  data that are correctly classified for that class. For example for the method above with the highest hit rate in the validation data (among logistic regression and the 2 CART models), the confusion matrix for the validation data is:
+The confusion matrix shows for each class the number (or percentage) of the  data that are correctly classified for that class. For example for the method above with the highest hit rate in the validation data (among logistic regression, 2 CART models and random forests), the confusion matrix for the validation data is:
 
 ```{r}
 validation_prediction_best = validation_predictions[which.max(validation_hit_rates),]
@@ -498,15 +498,9 @@ rownames(conf_matrix) <- c("Actual 1", "Actual 0")
 knitr::kable(conf_matrix)
 ```
 
-Note that the percentages add up to 100% for each row: can you see why? Moreover, a "good" confusion matrix should have large diagonal values and small off-diagonal oens: you see why?
-
 ### 3. ROC curve
 
-Remember that each observation is classified by our model according to the probabilities Pr(0) and Pr(1) and a chosen probability threshold. Typically we set the probability threshold to 0.5 - so that observations for which Pr(1) > 0.5 are classified as 1's. However, we can vary this threshold, for example if we are interested in correctly predicting all 1's but do not mind missing some 0's (and vice-versa) - can you think of such a scenario? 
-
-When we change the probability threshold we get different values of hit rate, false positive and false negative rates, or any other performance metric. We can plot for example how the false positive versus true posititive rates change as we alter the probability threshold,  and generate the so called ROC curve. 
-
-The ROC curves for the validation data for both the CARTs above as well as the logistic regression are as follows:
+The ROC curves for the validation data for all four methods is below:
 
 ```{r}
 validation_actual_class <- as.numeric(validation_data[,dependent_variable])
@@ -535,10 +529,6 @@ test5<-performance(pred_rand, "tpr", "fpr")
 df5<- cbind(as.data.frame(test5@x.values),as.data.frame(test5@y.values))
 colnames(df5) <- c("False Positive rate rand forests", "True Positive rand forests")
 
-
-# we can plot the curves individually here, but we're going to combine them below, instead
-# grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
-
 df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4, df5), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub("True Positive ", "", df$variable)
@@ -548,13 +538,9 @@ df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4, df5), function(df) {
 ggplot(df.all, aes(x=`False Positive rate`, y=value, colour=variable)) + geom_line() + ylab("True Positive rate")
 ```
 
-How should a good ROC curve look like? A rule of thumb in assessing ROC curves is that the "higher" the curve, hence the larger the area under the curve, the better. You may also select one point on the ROC curve (the "best one" for our purpose) and use that false positive/false negative performances (and corresponding threshold for P(0)) to assess your model. **Which point on the ROC should we select?**
-
 ### 4. Lift curve
 
-By changing the probability threshold, we can also generate the so called lift curve, which is useful for certain applications e.g. in marketing or credit risk. For example, consider the case of capturing fraud by examining only a few transactions instead of every single one of them. In this case we may want to examine as few transactions as possible and capture the maximum number of frauds possible. We can measure the percentage of all frauds we capture if we only examine, say, x% of cases (the top x% in terms of Probability(fraud)). If we plot these points [percentage of class 1 captured vs percentage of all data examined] while we change the threshold, we get a curve that is called the **lift curve**. 
-
-The Lift curves for the validation data for our three classifiers are the following:
+The Lift curves for the validation data for our four classifiers are the following:
 
 ```{r}
 validation_actual <- validation_data[,dependent_variable]
@@ -629,120 +615,9 @@ df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4, frame5), fu
 ggplot(df.all, aes(x=`Percent of validation data`, y=value, colour=variable)) + geom_line() + ylab("Percent of class 1")
 ```
 
-How should a good Lift Curve look like? Notice that if we were to randomly examine transactions, **the "random prediction" lift curve would be a 45 degrees straight diagonal line** (why?)! So the further **above** this 45 degrees line our Lift curve is, the better the "lift". Moreover, much like for the ROC curve, one can select the probability threshold appropriately so that any point of the lift curve is selected. **Which point on the lift curve should we select in practice?** 
-
-### 5. Profit Curve 
-
-Finally, we can generate the so called profit curve, which we often use to make our final decisions.  The intuition is as follows. Consider a direct marketing campaign, and suppose it costs $ 1 to send an advertisement, and the expected profit from a person who responds positively is $45. Suppose you have a database of 1 million people to whom you could potentially send the ads. What fraction of the 1 million people should you send ads (typical response rates are 0.05%)? To answer this type of questions we need to create the profit curve, which is generated by changing again the probability threshold for classifying observations: for each threshold value we can simply measure the total **Expected Profit** (or loss) we would generate. This is simply equal to:
-
-> Total Expected Profit = (% of 1's correctly predicted)x(value of capturing a 1) + (% of 0's correctly predicted)x(value of capturing a 0) + (% of 1's incorrectly predicted as 0)x(cost of missing a 1) + (% of 0's incorrectly predicted as 1)x(cost of missing a 0)
-> 
-> Calculating the expected profit requires we have an estimate of the 4 costs/values: value of capturing a 1 or a 0, and cost of misclassifying a 1 into a 0 or vice versa. 
-
-Given the values and costs of correct classifications and misclassifications, we can plot the total expected profit (or loss) as we change the probabibility threshold, much like how we generated the ROC and the Lift Curves. Here is the profit curve for our example if we consider the following business profit and loss for the correctly classified as well as the misclassified customers: 
-
-```{r}
-knitr::kable(Profit_Matrix)
-```
-
-Based on these profit and cost estimates, the profit curves for the validation data for the three classifiers are:
-
-```{r}
-actual_class <- validation_data[,dependent_variable]
-
-probs <- validation_Probability_class1_tree
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame1 <- data.frame(
-  `CART 1 % selected` = res[1,],
-  `CART 1 est. profit` = res[2,],
-  check.names = FALSE
-)
-plot1 <- ggplot(frame1, aes(x=`CART 1 % selected`, y=`CART 1 est. profit`)) + geom_line()
-
-probs <- validation_Probability_class1_tree_large
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame2 <- data.frame(
-  `CART 2 % selected` = res[1,],
-  `CART 2 est. profit` = res[2,],
-  check.names = FALSE
-)
-plot2 <- ggplot(frame2, aes(x=`CART 2 % selected`, y=`CART 2 est. profit`)) + geom_line()
-
-probs <- validation_Probability_class1_log
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame3 <- data.frame(
-  `log reg % selected` = res[1,],
-  `log reg est. profit` = res[2,],
-  check.names = FALSE
-)
-plot3 <- ggplot(frame3, aes(x=`log reg % selected`, y=`log reg est. profit`)) + geom_line()
-
-probs <- validation_Probability_random_forests
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame4 <- data.frame(
-  `rand forests % selected` = res[1,],
-  `rand forests est. profit` = res[2,],
-  check.names = FALSE
-)
-
-# we can plot the curves individually here, but we're going to combine them below, instead
-# grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
-
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
-  df <- melt(df, id=1)
-  df$variable <- sub(" est. profit", "", df$variable)
-  colnames(df)[1] <- "Percent selected"
-  df
-}))
-ggplot(df.all, aes(x=`Percent selected`, y=value, colour=variable)) + geom_line() + ylab("Estimated profit")
-```
-
-We can then select the threshold that corresponds to the maximum expected profit (or minimum loss, if necessary). 
-
-Notice that for us to maximize expected profit we need to have the cost/profit for each of the 4 cases! This can be difficult to assess, hence typically some sensitivity analysis to our assumptions about the cost/profit needs to be done: for example, we can generate different profit curves (i.e. worst case, best case, average case scenarios) and see how much the best profit we get varies, and most important **how our selection of the classification model and of the probability threshold vary** as these are what we need to eventually decide. 
-
-
 ## Step 6: Test Accuracy
 
-Having iterated steps 2-5 until we are satisfyed with the performance of our selected model on the validation data, in this step the performance analysis outlined in step 5 needs to be done with the test sample. This is the performance that "best mimics" what one should expect in practice upon deployment of the classification solution, **assuming (as always) that the data used for this performance analysis are representative of the situation in which the solution will be deployed.** 
-
-Let's see in our case how the **Confusion Matrix, ROC Curve, Lift Curve, and Profit Curve** look like for our test data. **Will the performance in the test data be similar to the performance in the  validation data above? More important: should we expect the performance of our classification model to be close to that in our test data when we deploy the model in practice? Why or why not? What should we do if they are different?**
+Below are presented hit ratios for all four methods based on test dataset:
 
 ```{r}
 ######for train data#####
@@ -886,99 +761,3 @@ df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4, frame5), fu
 }))
 ggplot(df.all, aes(x=`Percent of test data`, y=value, colour=variable)) + geom_line() + ylab("Percent of class 1")
 ```
-
-Finally the profit curves for the test data, using the same profit/cost estimates as we did above:
-
-```{r}
-actual_class<- test_data[,dependent_variable]
-
-probs <- test_Probability_class1_tree
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame1 <- data.frame(
-  `CART 1 % selected` = res[1,],
-  `CART 1 est. profit` = res[2,],
-  check.names = FALSE
-)
-
-probs <- test_Probability_class1_tree_large
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame2 <- data.frame(
-  `CART 2 % selected` = res[1,],
-  `CART 2 est. profit` = res[2,],
-  check.names = FALSE
-)
-
-probs <- test_Probability_class1_log
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame3 <- data.frame(
-  `log reg % selected` = res[1,],
-  `log reg est. profit` = res[2,],
-  check.names = FALSE
-)
-
-probs <- test_Probability_random_forests
-xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
-res <- Reduce(cbind,lapply(xaxis, function(prob){
-  useonly <- which(probs >= prob)
-  predict_class <- 1*(probs >= prob)
-  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
-    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
-    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
-    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
-  c(100*length(useonly)/length(actual_class), theprofit) 
-}))
-frame4 <- data.frame(
-  `rand forest % selected` = res[1,],
-  `rand forest est. profit` = res[2,],
-  check.names = FALSE
-)
-
-
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
-  df <- melt(df, id=1)
-  df$variable <- sub(" est. profit", "", df$variable)
-  colnames(df)[1] <- "Percent selected"
-  df
-}))
-ggplot(df.all, aes(x=`Percent selected`, y=value, colour=variable)) + geom_line() + ylab("Estimated profit")
-```
-
-
-# What if we consider a segment-specific analysis?
-
-Often our data (e.g. people) belong to different segments. In such cases, if we perform the classification analysis using all segments together we may not be able to find good quality models or strong classification drivers. 
-
-> When we believe our observations belong in different segments, we should perform the classification and drivers analysis for each segment separately. 
-
-Indeed, in this case with some more effort one can improve the profit of the firm by more than 5% when using a segment specific analysis - which one can do based on all the readings of the class. 
-
-Of course, as always, remember that 
-
-> Data Analytics is an iterative process, therefore we may need to return to our original raw data at any point and select new raw attributes as well as a different classification tool and model.
