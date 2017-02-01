@@ -384,7 +384,7 @@ test_Probability_random_forests <- predict(forestFit, test_data[, independent_va
 
 ```
 
-Beloow table shows us **key drivers** of the classification according to each of the used methods. 
+Below table shows us **key drivers** of the classification according to each of the used methods. 
 
 ```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE, results='asis'}
 log_importance = tail(log_coefficients[,"z value", drop=F],-1) # remove the intercept
