@@ -1,5 +1,5 @@
 ---
-title: "Classification Methods"
+title: "SpeedDating - prediciting success in speed dating"
 author: "T. Evgeniou; adapted by team"
 output:
   html_document:
@@ -132,15 +132,12 @@ CART_control = rpart.control(cp = CART_cp)
 
 ## The "Business Decision"
 
-A boating company had become a victim of the crisis in the boating industry. The business problem of the "Boat" case study, although hypothetical, depicts very well the sort of business problems faced by many real companies in an increasingly data-intensive business environment. The management team was now exploring various growth options. Expanding further in some markets, in particular North America, was no longer something to consider for the distant future. It was becoming an immediate necessity. 
-
-The team believed that in order to develop a strategy for North America, they needed a better understanding of their current and potential customers in that market. They believed that they had to build more targeted boats for their most important segments there. To that purpose, the boating company had commissioned a project for that market. Being a data-friendly company, the decision was made to develop an understanding of their customers in a data-driven way. 
-
-The company would like to understand who would be the most likely customers to purchase a boat in the future or to recommend their brand, as well as what would be the **key purchase drivers** that affect people's decision to purchase or recommend. 
+We would like to understand who would be the most likely speed dating targets to succeed as well as what would be the **key drivers** that affect people's decision in selecting. 
 
 ## The Data
 
-Let's get the data and see it for a few customers. This is how the first `r min(max_data_report, nrow(ProjectData))` out of the total of `r nrow(ProjectData)` rows look:
+We used the data from speed dating experiment conducted at Columbia Business School <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment">available on kaggle</a> 
+This is how the first `r min(max_data_report, nrow(ProjectData))` out of the total of `r nrow(ProjectData)` rows look:
 
 ```{r echo=FALSE, message=FALSE, prompt=FALSE, results='asis'}
 # let's make the data into data.matrix classes so that we can easier visualize them
@@ -153,15 +150,11 @@ knitr::kable({
 })
 ```
 
-We will see some descriptive statistics of the data later, when we get into the statistical analysis.
-
 ## A Process for Classification
 
-> It is important to remember that Data Analytics Projects require a delicate balance between experimentation, intuition, but also following (once a while) a process to avoid getting fooled by randomness in data and finding "results and patterns" that are mainly driven by our own biases and not by the facts/data themselves.
-
-There is *not a single best* process for classification. However, we have to start somewhere, so we will use the following process:
-
 # Classification in 6 steps
+
+> We followed the following approach to proceed with classification (as explained in class)
 
 1. Create an estimation sample and two validation samples by splitting the data into three groups. Steps 2-5 below will then be performed only on the estimation and the first validation data. You should only do step 6 once on the second validation data, also called **test data**, and report/use the performance on that (second validation) data only to make final business decisions. 
 2.  Set up the dependent variable (as a categorical 0-1 variable; multi-class classification is also feasible, and similar, but we do not explore it in this note). 
@@ -173,12 +166,6 @@ There is *not a single best* process for classification. However, we have to sta
 Let's follow these steps.
 
 ## Step 1: Split the data 
-
-It is very important that you finally measure and report (or expect to see from the data scientists working on the project) the performance of the models on **data that have not been used at all during the analysis, called "out-of-sample" or test data** (steps 2-5 above). The idea is that in practice we want our models to be used for predicting the class of observations/data we have not seen yet (e.g. "the future data"): although the performance of a classification method may be high in the data used to estimate the model parameters, it may be significantly poorer on data not used for parameter estimation, such as the **out-of-sample** (future) data in practice. The second validation data mimic such out-of-sample data, and the performance on this validation set is a better approximation of the performance one should expect in practice from the selected classification method.  This is why we split the data into an estimation sample and two validation samples  - using some kind of randomized splitting technique.  The estimation data and the first validation data are used during steps 2-5 (with a few iterations of these steps), while the second validation data is only used once at the very end before making final business decisions based on the analysis. The split can be, for example, 80% estimation, 10% validation, and 10% test data, depending on the number of observations - for example, when there is a lot of data, you may only keep a few hundreds of them for the validation and test sets, and use the rest for estimation. 
-
-While setting up the estimation and validation samples, you should also check that the same proportion of data from each class, i.e. people who plan to purchase a boat versus not, are maintained in each sample, i.e., you should maintain the same balance of the dependent variable categories as in the overall dataset. 
-
-For simplicy, in this note we will  not iterate steps 2-5.  Again, this should **not** be done in practice, as we should usually iterate steps 2-5 a number of times using the first validation sample each time, and make our final assessment of the classification model using the test sample only once (ideally). 
 
 ```{r}
 if (random_sampling){
@@ -198,20 +185,14 @@ validation_data=ProjectData[validation_data_ids,]
 test_data=ProjectData[test_data_ids,]
 ```
 
-We typically call the three data samples as **estimation_data** (e.g. `r estimation_data_percent`% of the data in our case),  **validation_data**  (e.g. the `r validation_data_percent`% of the data) and **test_data** (e.g. the remaining `r 100 - estimation_data_percent  -  validation_data_percent`% of the data).
+We have three data samples: **estimation_data** (e.g. `r estimation_data_percent`% of the data in our case),  **validation_data**  (e.g. the `r validation_data_percent`% of the data) and **test_data** (e.g. the remaining `r 100 - estimation_data_percent  -  validation_data_percent`% of the data).
 
-In our case we use for example `r nrow(estimation_data)` observations in the estimation data, 
+In our case we use `r nrow(estimation_data)` observations in the estimation data, 
 `r nrow(validation_data)` in the validation data, and `r nrow(test_data)` in the test data. 
 
 ## Step 2: Choose dependent variable
 
-First, make sure the dependent variable is set up as a categorical 0-1 variable. In this illustrative example, the "intent to recommend" and "intent to purchase" are 0-1 variables: we will use the later as our dependent variable but a similar analysis could be done for the former. 
-
-The data however may not be always readily available with a categorical dependent variable. Suppose a retail store wants to understand what discriminates consumers who are  loyal versus those who are not. If they have data on the amount that customers spend in their store or the frequency of their purchases, they can create a categorical variable ("loyal vs not-loyal") by using a definition such as: "A loyal customer is one who spends more than X amount at the store and makes at least Y purchases a year". They can then code these loyal customers as "1" and the others as "0". They can choose the thresholds X and Y as they wish: a definition/decision that may have a big impact in the overall analysis. This decision can be the most crucial one of the whole data analysis: a wrong choice at this step may lead both to poor performance later as well as to no valuable insights. One should revisit the choice made at this step several times, iterating steps 2-3 and 2-5.
-
-> Carefully deciding what the dependent 0/1 variable is can be the most critical choice of a classification analysis. This decision typically depends on contextual knowledge and needs to be revisited multiple times throughout a data analytics project. 
-
-In our data the number of 0/1's in our estimation sample is as follows:
+Our dependent variable is: `r colnames(ProjectData)[dependent_variable]`. It states whether given subject was selected by the  .In our data the number of 0/1's in our estimation sample is as follows.
 
 ```{r}
 class_percentages=matrix(c(sum(estimation_data[,dependent_variable]==1),sum(estimation_data[,dependent_variable]==0)), nrow=1); colnames(class_percentages)<-c("Class 1", "Class 0")
@@ -229,25 +210,19 @@ knitr::kable(class_percentages)
 
 ## Step 3: Simple Analysis
 
-Good data analytics starts with good contextual knowledge as well as a simple statistical and visualization exploration of the data. In the case of classification, one can explore "simple classifications" by assessing how the  classes differ along any of the independent variables. For example, these are the statistics of our independent variables across the two classes, class 1, "purchase"
+Below are the statistics of our independent variables across the two classes, class 1, "selected"
 
 ```{r}
 knitr::kable(round(my_summary(estimation_data[estimation_data[,dependent_variable]==1,independent_variables]),2))
 ```
 
-and class 0, "no purchase":
+and class 0, "not selected":
 
 ```{r}
 knitr::kable(round(my_summary(estimation_data[estimation_data[,dependent_variable]==0,independent_variables]),2))
 ```
 
-The purpose of such an analysis by class is to get an initial idea about whether the classes are indeed separable as well as to understant which of the independent variables have most discriminatory power. Can you see any differences across the two classes in the tables above? 
-
-Notice however that
-
-> Even though each independent variable may not differ across classes, classification may still be feasible: a (linear or nonlinear) combination of independent variables may still be discriminatory. 
-
-A simple visualization tool to assess the discriminatory power of the independent variables are the **box plots**. These visually indicate simple summary statistics of an independent variable (e.g. mean, median, top and bottom quantiles, min, max, etc). For example consider the box plots for our data, for class 0
+A simple visualization of values is presented below using the **box plots**. These visually indicate simple summary statistics of an independent variable (e.g. mean, median, top and bottom quantiles, min, max, etc). For example, for class 0
 
 ```{r, fig.height=4.5}
 DVvalues = unique(estimation_data[,dependent_variable])
@@ -271,21 +246,11 @@ ggplot(melt(cbind.data.frame(n=1:nrow(x1), x1), id="n"), aes(x=n, y=value, colou
 set_swatch(swatch.default)
 ```
 
-Can you see which variables appear to be the most discrimatory ones?
-
 ## Step 4: Classification and Interpretation
 
-Once we decide which  dependent and independent variables to use (which can be revisited in later iterations), one can use a number of classification methods to develop a model that discriminates the different classes. 
+For our assignent, we used three classification methods: **logistic regression**, **classification and regression trees (CART)** and **machine learning (i.e. random forests)**.
 
-> Some of the widely used classification methods are:  classification and regression trees, boosted trees, support vector machines, neural networks, nearest neighbors, logistic regression, lasso, random forests, deep learning methods, etc.
-
-In this note we will consider for simplicity only two classification methods: **logistic regression** and **classification and regression trees (CART)**. However, replacing them with other methods is relatively simple (although some knowledge of how these methods work is often necessary - see the R help command for the methods if needed). Understanding how these methods work is beyond the scope of this note - there are many references available online for all these classification methods. 
-
-CART is a widely used classification method largely because the estimated classification models are easy to interpret. This classification tool iteratively "splits" the data using the most discriminatory independent variable at each step, building a "tree" - as shown below - on the way. The CART methods **limit the size of the tree** using various statistical techniques in order to avoid **overfitting the data**. For example, using the rpart and rpart.control functions in R, we can limit the size of the tree by selecting the functions' **complexity control** paramater **cp** (what this does is beyond the scope of this note. For the rpart and rpart.control functions in R, smaller values, e.g. cp=0.001, lead to larger trees, as we will see next).
-
-> One of the biggest risks when developing classification models is overfitting: while it is always trivial to develop a model (e.g. a tree) that classifies any (estimation) dataset with no misclassification error at all, there is no guarantee that the quality of a classifier in out-of-sample data (e.g. in the validation data) will be close to that in the estimation data. Striking the right balance between "over-fitting" and "under-fitting" is one of the most important aspects in data analytics. While there are a number of statistical techniques to help us find this balance - including the use of validation data - it is largely a combination of good statistical analysis with qualitative criteria (e.g. regarding the interpretability or simplicity of the estimated models) that leads to classification models which can work well in practice. 
-
-Running a basic CART model with complexity control cp=`r CART_cp`,  leads to the following tree (**NOTE**: for better readability of the tree figures below,  we will rename the independent variables as IV1 to `r paste("IV", length(independent_variables), sep="")` when using CART):
+Running a basic CART model with complexity control cp=`r CART_cp`, leads to the following tree:
 
 ```{r}
 # just name the variables numerically so that they look ok on the tree plots
@@ -317,13 +282,18 @@ rpart.plot(CART_tree, box.palette="OrBu", type=3, extra=1, fallen.leaves=F, bran
 
 labels = colnames(ProjectData)[c(independent_variables)]
 
+y <- matrix(nrow = length(names(CART_tree$variable.importance)), ncol = 2)
+i <- 0
 for (x in names(CART_tree$variable.importance)) {
-  y <- paste(x, labels[as.numeric(gsub("\\IV"," ",x))], sep = ": ")
-  print(y)
+    i <- i + 1 
+    y[i,1] <- x
+    y[i,2] <- labels[as.numeric(gsub("\\IV"," ", x))]
 }
-```
 
-The leaves of the tree indicate the number of estimation data observations that belong to each class which "reach that leaf" as well as the pecentage of all data points that reach the leaf. A perfect classification would only have data from one class in each of the tree leaves. However, such a perfect classification of the estimation data would most likely not be able to classify well out-of-sample data due to over-fitting of the estimation data.
+colnames(y) <- c("Attribute", "Name")
+
+knitr::kable(y)
+```
 
 One can estimate larger trees through changing the tree's **complexity control** parameter (in this case the rpart.control argument cp). For example, this is how the tree would look like if we set `cp = 0.005`:
 
@@ -333,10 +303,18 @@ rpart.plot(CART_tree_large, box.palette="OrBu", type=3, extra=1, fallen.leaves=F
 
 labels = colnames(ProjectData)[c(independent_variables)]
 
+y <- matrix(nrow = length(names(CART_tree_large$variable.importance)), ncol = 2)
+i <- 0
 for (x in names(CART_tree_large$variable.importance)) {
-  y <- paste(x, labels[as.numeric(gsub("\\IV"," ",x))], sep = ": ")
-  print(y)
+    i <- i + 1 
+    y[i,1] <- x
+    y[i,2] <- labels[as.numeric(gsub("\\IV"," ", x))]
 }
+
+colnames(y) <- c("Attribute", "Name")
+
+knitr::kable(y)
+
 ```
 
 One can also use the percentage of data in each leaf of the tree to have an estimated probability that an observation (e.g. person) belongs to a given class.  The **purity of the leaf** can indicate the probability an observation which "reaches that leaf" belongs to a class. In our case, the probability our validation data belong to class 1 (e.g. the customer is likely to purchase a boat) for the first few validation data observations, using the first CART above, is:
