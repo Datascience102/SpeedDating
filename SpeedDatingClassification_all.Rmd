@@ -397,9 +397,12 @@ varImpPlot(forestFit)
 
 estimation_prediction_random_forests <- predict(forestFit, estimation_data[,independent_variables])
 validation_prediction_random_forests <- predict(forestFit, validation_data[, independent_variables])
-test_prediction_random_forests <- predict(forestFit, validation_data[, independent_variables])
+test_prediction_random_forests <- predict(forestFit, test_data[, independent_variables])
 
 validation_Probability_random_forests <- predict(forestFit, validation_data[, independent_variables], type = "prob")[,2]
+
+test_Probability_random_forests <- predict(forestFit, test_data[, independent_variables], type = "prob")[,2]
+
 ```
 
 
@@ -545,28 +548,32 @@ validation_actual_class <- as.numeric(validation_data[,dependent_variable])
 pred_tree <- prediction(validation_Probability_class1_tree, validation_actual_class)
 pred_tree_large <- prediction(validation_Probability_class1_tree_large, validation_actual_class)
 pred_log <- prediction(validation_Probability_class1_log, validation_actual_class)
+pred_rand <- prediction(validation_Probability_random_forests, validation_actual_class)
 
 test1<-performance(pred_tree, "tpr", "fpr")
 df1<- cbind(as.data.frame(test1@x.values),as.data.frame(test1@y.values))
 colnames(df1) <- c("False Positive rate CART 1", "True Positive CART 1")
-plot1 <- ggplot(df1, aes(x=`False Positive rate CART 1`, y=`True Positive CART 1`)) + geom_line()
+
 test2<-performance(pred_log, "tpr", "fpr")
 df2<- cbind(as.data.frame(test2@x.values),as.data.frame(test2@y.values))
 colnames(df2) <- c("False Positive rate log reg", "True Positive log reg")
-plot2 <- ggplot(df2, aes(x=`False Positive rate log reg`, y=`True Positive log reg`)) + geom_line()
+
 test3<-performance(pred_tree_large, "tpr", "fpr")
 df3<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@y.values))
 colnames(df3) <- c("False Positive rate CART 2", "True Positive CART 2")
-plot3 <- ggplot(df3, aes(x=`False Positive rate CART 2`, y=`True Positive CART 2`)) + geom_line()
 
 df4<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@x.values))
 colnames(df4) <- c("False Positive rate y=x", "True Positive y=x")
+
+test5<-performance(pred_rand, "tpr", "fpr")
+df5<- cbind(as.data.frame(test5@x.values),as.data.frame(test5@y.values))
+colnames(df5) <- c("False Positive rate rand forests", "True Positive rand forests")
 
 
 # we can plot the curves individually here, but we're going to combine them below, instead
 # grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
 
-df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4), function(df) {
+df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4, df5), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub("True Positive ", "", df$variable)
   colnames(df)[1] <- "False Positive rate"
@@ -731,10 +738,27 @@ frame3 <- data.frame(
 )
 plot3 <- ggplot(frame3, aes(x=`log reg % selected`, y=`log reg est. profit`)) + geom_line()
 
+probs <- validation_Probability_random_forests
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= prob)
+  predict_class <- 1*(probs >= prob)
+  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
+    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
+    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
+    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
+  c(100*length(useonly)/length(actual_class), theprofit) 
+}))
+frame4 <- data.frame(
+  `rand forests % selected` = res[1,],
+  `rand forests est. profit` = res[2,],
+  check.names = FALSE
+)
+
 # we can plot the curves individually here, but we're going to combine them below, instead
 # grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
 
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3), function(df) {
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub(" est. profit", "", df$variable)
   colnames(df)[1] <- "Percent selected"
@@ -798,13 +822,16 @@ test_actual_class <- as.numeric(test_data[,dependent_variable])
 pred_tree_test <- prediction(test_Probability_class1_tree, test_actual_class)
 pred_tree_large_test <- prediction(test_Probability_class1_tree_large, test_actual_class)
 pred_log_test <- prediction(test_Probability_class1_log, test_actual_class)
+pred_rand_test <- prediction(test_Probability_random_forests, test_actual_class)
 
 test<-performance(pred_tree_test, "tpr", "fpr")
 df1<- cbind(as.data.frame(test@x.values),as.data.frame(test@y.values))
 colnames(df1) <- c("False Positive rate CART 1", "True Positive CART 1")
+
 test2<-performance(pred_tree_large_test, "tpr", "fpr")
 df2<- cbind(as.data.frame(test2@x.values),as.data.frame(test2@y.values))
 colnames(df2) <- c("False Positive rate CART 2", "True Positive CART 2")
+
 test3<-performance(pred_log_test, "tpr", "fpr")
 df3<- cbind(as.data.frame(test1@x.values),as.data.frame(test1@y.values))
 colnames(df3) <- c("False Positive rate log reg", "True Positive log reg")
@@ -812,7 +839,11 @@ colnames(df3) <- c("False Positive rate log reg", "True Positive log reg")
 df4<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@x.values))
 colnames(df4) <- c("False Positive rate y=x", "True Positive y=x")
 
-df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4), function(df) {
+test5<-performance(pred_rand_test, "tpr", "fpr")
+df5<- cbind(as.data.frame(test5@x.values),as.data.frame(test5@y.values))
+colnames(df5) <- c("False Positive rate rand forests", "True Positive rand forests")
+
+df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4, df5), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub("True Positive ", "", df$variable)
   colnames(df)[1] <- "False Positive rate"
@@ -869,7 +900,19 @@ frame4 <- data.frame(
   check.names = FALSE
 )
 
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
+probs <- test_Probability_random_forests
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(test_actual), sum(test_actual[useonly])/all1s) 
+  }))
+frame5 <- data.frame(
+  `rand forests % of validation data` = res[1,],
+  `rand forests % of class 1` = res[2,],
+  check.names = FALSE
+)
+
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4, frame5), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub(" % of class 1", "", df$variable)
   colnames(df)[1] <- "Percent of test data"
@@ -934,7 +977,25 @@ frame3 <- data.frame(
   check.names = FALSE
 )
 
-df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3), function(df) {
+probs <- test_Probability_random_forests
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= prob)
+  predict_class <- 1*(probs >= prob)
+  theprofit <- Profit_Matrix[1,1]*sum(predict_class==1 & actual_class ==1)+
+    Profit_Matrix[1,2]*sum(predict_class==0 & actual_class ==1)+
+    Profit_Matrix[2,1]*sum(predict_class==1 & actual_class ==0)+
+    Profit_Matrix[2,2]*sum(predict_class==0 & actual_class ==0)
+  c(100*length(useonly)/length(actual_class), theprofit) 
+}))
+frame4 <- data.frame(
+  `rand forest % selected` = res[1,],
+  `rand forest est. profit` = res[2,],
+  check.names = FALSE
+)
+
+
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4), function(df) {
   df <- melt(df, id=1)
   df$variable <- sub(" est. profit", "", df$variable)
   colnames(df)[1] <- "Percent selected"
