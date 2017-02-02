@@ -67,7 +67,7 @@ First we load the data to use (see the raw .Rmd file to change the data file as 
 
 ```{r setupdata1E, echo=TRUE, tidy=TRUE}
 # Please ENTER the name of the file with the data used. The file should be a .csv with one row per observation (e.g. person) and one column per attribute. Do not add .csv at the end, make sure the data are numeric.
-datafile_name = "data/SpeedDatingData_clean.csv"
+datafile_name = "data/Workbook5.csv"
 
 # Please enter the minimum number below which you would like not to print - this makes the readability of the tables easier. Default values are either 10e6 (to print everything) or 0.5. Try both to see the difference.
 MIN_VALUE = 0.5
@@ -112,7 +112,7 @@ minimum_variance_explained = 65  # between 1 and 100
 
 # Please ENTER the number of factors to use 
 # (Only used in case "manual" is the factor selection criterion used).
-manual_numb_factors_used = 8
+manual_numb_factors_used = 3
 
 # Please ENTER the rotation eventually used (e.g. "none", "varimax", "quatimax", "promax", "oblimin", "simplimax", and "cluster" - see help(principal)). Default is "varimax"
 rotation_used = "varimax"
@@ -340,13 +340,9 @@ A key family of methods used for segmentation is what is called **clustering met
 ```{r setupcluster, echo=TRUE, tidy=TRUE}
 # Please ENTER then original raw attributes to use for the segmentation (the "segmentation attributes")
 # Please use numbers, not column names, e.g. c(1:5, 7, 8) uses columns 1,2,3,4,5,7,8
-segmentation_attributes_used = c("museums","attr3_1","attr2_1","sports","tv","shar1_1","sinc3_1")
+segmentation_attributes_used = c("amb1_1","attr2_1","sinc2_1")
 
-# Please ENTER then original raw attributes to use for the profiling of the segments (the "profiling attributes")
-# Please use numbers, not column names, e.g. c(1:5, 7, 8) uses columns 1,2,3,4,5,7,8
-# profile_attributes_used = c("attr_o","sinc_o","intel_o","fun_o","amb_o","shar_o","like_o","prob_o","met_o","gender","age","race")
-
-profile_attributes_used = c(3:40,42:100)
+profile_attributes_used = c(3:100)
 
 # Please ENTER the number of clusters to eventually use for this report
 numb_clusters_used = 3 # for boats possibly use 5, for Mall_Visits use 3
@@ -456,6 +452,8 @@ colnames(df1) <- c("distances","index")
 iplot.df(melt(head(df1, 20), id="index"), xlab="Number of Components")
 ```
 
+Here is the segment membership of the first `r max_data_report` respondents if we use hierarchical clustering:
+
 ```{r}
 cluster_memberships_hclust <- as.vector(cutree(Hierarchical_Cluster, k=numb_clusters_used)) # cut tree into 3 clusters
 cluster_ids_hclust=unique(cluster_memberships_hclust)
@@ -463,7 +461,7 @@ cluster_ids_hclust=unique(cluster_memberships_hclust)
 ProjectData_with_hclust_membership <- cbind(1:length(cluster_memberships_hclust),cluster_memberships_hclust)
 colnames(ProjectData_with_hclust_membership)<-c("Observation Number","Cluster_Membership")
 
-# iprint.df(round(head(ProjectData_with_hclust_membership, max_data_report), 2))
+iprint.df(round(head(ProjectData_with_hclust_membership, max_data_report), 2))
 ```
 
 while this is the segment membership if we use k-means:
@@ -474,10 +472,7 @@ kmeans_clusters <- kmeans(ProjectData_segment,centers= numb_clusters_used, iter.
 ProjectData_with_kmeans_membership <- cbind(1:length(kmeans_clusters$cluster),kmeans_clusters$cluster)
 colnames(ProjectData_with_kmeans_membership)<-c("Observation Number","Cluster_Membership")
 
-a <- c(1,11,21,31,41,51,61,71,81,91,101,111,121,131,141,151,161,171,181,191,201)
-x <- ProjectData_with_kmeans_membership[a,]
-
-iprint.df(round(head(x, max_data_report), 2))
+iprint.df(round(head(ProjectData_with_kmeans_membership, max_data_report), 2))
 ```
 
 ## Step 7: Profile and interpret the segments
@@ -538,26 +533,54 @@ colnames(cluster_profile_ratios) <- paste("Seg.", 1:ncol(cluster_profile_ratios)
 rownames(cluster_profile_ratios) <- colnames(ProjectData)[profile_attributes_used]
 ## printing the result in a clean-slate table
 
+
 cluster_profile_ratios[abs(cluster_profile_ratios-1) < 0.2]<-NA
 
 iprint.df(round(cluster_profile_ratios-1, 2))
 
+
 ```
 
+**Questions**
 
-```{r}
-# save segmentation dependent outputs
-idxs <- unique(ProjectData_with_kmeans_membership[,2])
+1. What do the numbers in the last table indicate? What numbers are the more informative?
+2. Based on the tables and snake plot above, what are some key features of each of the segments of this solution?
 
-y <- c("gender","match","samerace","age_o","race_o","pf_o_att","pf_o_sin","pf_o_int","pf_o_fun","pf_o_amb","pf_o_sha","dec_o","attr_o","sinc_o","intel_o","fun_o","amb_o","shar_o","like_o","prob_o","met_o","age",,"field_cd","race","goal","date","go_out","career_c","sports","tvsports","exercise","dining","museums","art","hiking","gaming","clubbing","reading","tv","theater","movies","concerts","music","shopping","yoga","attr1_1","sinc1_1","intel1_1","fun1_1","amb1_1","shar1_1","attr3_1","sinc3_1","fun3_1","intel3_1","amb3_1","dec")
+**Answers**
 
-for (i in idxs) {
-  x <- which(ProjectData_with_kmeans_membership[,2]==i)
-  output <- ProjectData[x,]
-  # save to csv - only selected columns
-  write.csv(output, file = paste("data/SpeedDating_segmented_", i, ".csv", sep = ""))
-}
-```
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
 
+## Step 8: Robustness Analysis
+
+We should also consider the robustness of our analysis as we change the clustering method and parameters. Once we are comfortable with the solution we can finally answer our first business questions:
+
+**Questions**
+
+1. How many segments are there in our market? How many do you select and why? Try a few and explain your final choice based on a) statistical arguments, b) on interpretation arguments, c) on business arguments (**you need to consider all three types of arguments**)
+2. Can you describe the segments you found based on the profiles?
+3. What if you change the number of factors and in general you *iterate the whole analysis*? **Iterations** are key in data science.
+4. Can you now answer the [Boats case questions](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-A-prerelease.pdf)? What business decisions do you recommend to this company based on your analysis?
+
+**Answers**
+
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
 
 <hr>\clearpage
