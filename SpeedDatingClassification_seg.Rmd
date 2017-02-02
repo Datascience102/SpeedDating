@@ -103,6 +103,7 @@ if (gender == 0 || gender == 1) {
 
 # remove rows with empty cells
 ProjectData <- ProjectData[rowSums(is.na(ProjectData)) == 0,]
+ProjectData <- ProjectData[,-1]
 
 ProjectData_INITIAL <- ProjectData
 
