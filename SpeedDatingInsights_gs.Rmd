@@ -1,0 +1,282 @@
+---
+title: "SpeedDating market segmentation"
+author: "T. Evgeniou; adapted by team"
+output:
+  html_document:
+    css: styles/default.css
+    theme: paper
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    includes:
+      in_header: styles/default.sty
+always_allow_html: yes
+---
+
+> **IMPORTANT**: Please make sure you create a copy of this file with a customized name, so that your work (e.g. answers to the questions) is not over-written when you pull the latest content from the course github. 
+This is a **template process for market segmentation based on survey data**, using the  [Boats cases A](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-A-prerelease.pdf) and  [B](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-B-prerelease.pdf).
+
+All material and code is available at the [INSEAD Data Analytics for Business](http://inseaddataanalytics.github.io/INSEADAnalytics/) website and github. Before starting, make sure you have pulled the [course files](https://github.com/InseadDataAnalytics/INSEADAnalytics) on your github repository.  As always, you can use the `help` command in Rstudio to find out about any R function (e.g. type `help(list.files)` to learn what the R function `list.files` does).
+
+
+<hr>\clearpage
+
+# The Business Questions
+
+This process can be used as a (starting) template for projects like the one described in the [Boats cases A](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-A-prerelease.pdf) and  [B](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-B-prerelease.pdf). For example (but not only), in this case some of the business questions were: 
+
+- What are the main purchase drivers of the customers (and prospects) of this company? 
+
+- Are there different market segments? Which ones? Do the purchase drivers differ across segments? 
+
+- What (possibly market segment specific) product development or brand positioning strategy should the company follow in order to increase its sales? 
+
+See for example some of the analysis of this case in  these slides: <a href="http://inseaddataanalytics.github.io/INSEADAnalytics/Sessions2_3 Handouts.pdf"  target="_blank"> part 1</a> and <a href="http://inseaddataanalytics.github.io/INSEADAnalytics/Sessions4_5 Handouts.pdf"  target="_blank"> part 2</a>.
+
+<hr>\clearpage
+
+# The Process
+
+The "high level" process template is split in 3 parts, corresponding to the course sessions 3-4, 5-6, and an optional last part: 
+
+1. *Part 1*: We use some of the survey questions (e.g. in this case the first 29 "attitude" questions) to find **key customer descriptors** ("factors") using *dimensionality reduction* techniques described in the [Dimensionality Reduction](http://inseaddataanalytics.github.io/INSEADAnalytics/CourseSessions/Sessions23/FactorAnalysisReading.html) reading of Sessions 3-4.
+
+2. *Part 2*: We use the selected customer descriptors to **segment the market** using *cluster analysis* techniques described in the [Cluster Analysis ](http://inseaddataanalytics.github.io/INSEADAnalytics/CourseSessions/Sessions45/ClusterAnalysisReading.html) reading of Sessions 5-6.
+
+3. *Part 3*: For the market segments we create, we will use *classification analysis* to classify people based on whether or not they have purchased a product and find what are the **key purchase drivers per segment**. For this part we will use [classification analysis ](http://inseaddataanalytics.github.io/INSEADAnalytics/CourseSessions/Sessions67/ClassificationAnalysisReading.html) techniques.
+
+Finally, we will use the results of this analysis to make business decisions e.g. about brand positioning, product development, etc depending on our market segments and key purchase drivers we find at the end of this process.
+
+
+```{r setuplibraries, echo=FALSE, message=FALSE}
+suppressWarnings(source("lib/library.R"))
+# Package options
+suppressWarnings(ggthemr('fresh'))  # ggplot theme
+opts_knit$set(progress=FALSE, verbose=FALSE)
+opts_chunk$set(echo=FALSE, fig.align="center", fig.width=10, fig.height=6.35, results="asis")
+options(knitr.kable.NA = '')
+```
+
+<hr>\clearpage
+
+# The Data
+
+First we load the data to use (see the raw .Rmd file to change the data file as needed):
+
+```{r setupdata1E, echo=TRUE, tidy=TRUE}
+# Please ENTER the name of the file with the data used. The file should be a .csv with one row per observation (e.g. person) and one column per attribute. Do not add .csv at the end, make sure the data are numeric.
+datafile_name = "data/SpeedDatingData_clean.csv"
+
+# Please enter the minimum number below which you would like not to print - this makes the readability of the tables easier. Default values are either 10e6 (to print everything) or 0.5. Try both to see the difference.
+MIN_VALUE = 0.5
+
+# Please enter the maximum number of observations to show in the report and slides. 
+# DEFAULT is 10. If the number is large the report may be slow.
+max_data_report = 30
+```
+
+```{r}
+ProjectData <- read.delim(file = datafile_name, sep = ";")
+
+ProjectData_INITIAL <- ProjectData
+```
+
+```{r}
+ProjectData$Delta_attr<-ProjectData$attr_o - ProjectData$attr5_1
+ProjectData$Delta_sinc<-ProjectData$sinc_o - ProjectData$sinc5_1
+ProjectData$Delta_intel<-ProjectData$intel_o - ProjectData$intel5_1
+ProjectData$Delta_fun<-ProjectData$fun_o - ProjectData$fun5_1
+ProjectData$Delta_amb<-ProjectData$amb_o - ProjectData$amb5_1
+ProjectData$Delta_avg<-(ProjectData$Delta_attr+ProjectData$Delta_sinc+ProjectData$Delta_intel+ProjectData$Delta_fun+ProjectData$Delta_amb)/5
+ProjectData <- ProjectData[!is.na(ProjectData$Delta_avg),]
+
+insights_row_names<-c("Overall","Men","Women","SD Men","SD Women","Undervalued (Overall)","Overvalued (Overall)","On spot (Overall)","Undervalued (men)","Overvalued (men)","On spot (men)","Undervalued (women)","Overvalued (women)","On spot (women)")
+
+insights_col_names<-c("Overall_Avg_delta","%","Avg_Attr_Delta","Attr_%","Avg_Sinc_Delta","Sinc_%","Avg_Intel_Delta","Intel_%","Avg_Fun_Delta","Fun_%","Avg_Amb_Delta","Amb_%")
+
+ProjectData_male<-subset(ProjectData,ProjectData$gender==1)
+ProjectData_female<-subset(ProjectData,ProjectData$gender==0)
+
+Project_insights<-NULL
+
+for (i in c(201,196,197,198,199,200)) {
+
+insights_1<-c(
+round(mean(ProjectData[,i]),2),
+round(mean(ProjectData_male[,i]),2),
+round(mean(ProjectData_female[,i]),2),
+round(sd(ProjectData_male[,i]),2),
+round(sd(ProjectData_female[,i]),2),
+length(ProjectData[ProjectData[,i]<0,1]),
+length(ProjectData[ProjectData[,i]>0,1]),
+length(ProjectData[ProjectData[,i]==0,1]),
+length(ProjectData_male[ProjectData_male[,i]<0,1]),
+length(ProjectData_male[ProjectData_male[,i]>0,1]),
+length(ProjectData_male[ProjectData_male[,i]==0,1]),
+length(ProjectData_female[ProjectData_female[,i]<0,1]),
+length(ProjectData_female[ProjectData_female[,i]>0,1]),
+length(ProjectData_female[ProjectData_female[,i]==0,1])
+)
+
+insights_2<-c(
+"","","","","",
+paste(percent(length(ProjectData[ProjectData[,i]<0,1])/length(ProjectData[,1]))),
+paste(percent(length(ProjectData[ProjectData[,i]>0,1])/length(ProjectData[,1]))),
+paste(percent(length(ProjectData[ProjectData[,i]==0,1])/length(ProjectData[,1]))),
+paste(percent(length(ProjectData_male[ProjectData_male[,i]<0,1])/length(ProjectData_male[,1]))),
+paste(percent(length(ProjectData_male[ProjectData_male[,i]>0,1])/length(ProjectData_male[,1]))),
+paste(percent(length(ProjectData_male[ProjectData_male[,i]==0,1])/length(ProjectData_male[,1]))),
+paste(percent(length(ProjectData_female[ProjectData_female[,i]<0,1])/length(ProjectData_female[,1]))),
+paste(percent(length(ProjectData_female[ProjectData_female[,i]>0,1])/length(ProjectData_female[,1]))),
+paste(percent(length(ProjectData_female[ProjectData_female[,i]==0,1])/length(ProjectData_female[,1])))
+)
+
+insights<-cbind(insights_1,insights_2)
+Project_insights<-cbind(Project_insights,insights)
+}
+
+dimnames(Project_insights)<-list(insights_row_names,insights_col_names)
+
+iprint.df(Project_insights, scale=TRUE)
+
+```
+
+
+```{r}
+
+hypothesis_row_names<-c("Mean (men)","SD (men)","Sample size (men)","t-value (men)","Critical Value at 1% (men)","Statistical Decision (men)","","Mean (women)","SD (women)","Sample size (women)","t-value (women)","Critical Value at 1% (women)","Statistical Decision (women)")
+
+hypothesis_col_names<-c("Attractiveness","Sincerity","Intelligence","Fun","Ambition")
+
+Hypothesis_testing<-NULL
+
+for (i in c(196,197,198,199,200)) {
+
+average_men<-mean(ProjectData_male[,i])
+sd_men<-sd(ProjectData_male[,i])
+size_men<-length(ProjectData_male[,i])
+tvalue_men<-average_men/(sqrt(sd_men/size_men))
+critical_value_men<-qt(0.05,size_men-1)
+
+average_women<-mean(ProjectData_female[,i])
+sd_women<-sd(ProjectData_female[,i])
+size_women<-length(ProjectData_female[,i])
+tvalue_women<-average_women/(sqrt(sd_women/size_women))
+critical_value_women<-qt(0.01,size_women-1)
+
+Hypothesis_testing<-cbind(Hypothesis_testing,c(
+round(average_men,2),
+round(sd_men,2),
+size_men,
+round(tvalue_men,3),
+round(critical_value_men,3),
+if(tvalue_men<critical_value_men) {"Reject"} else {"Accept"},
+"",
+round(average_women,2),
+round(sd_women,2),
+size_women,
+round(tvalue_women,3),
+round(critical_value_women,3),
+if(tvalue_women<critical_value_women) {"Reject"} else {"Accept"}
+))}
+
+dimnames(Hypothesis_testing)<-list(hypothesis_row_names,hypothesis_col_names)
+
+iprint.df(Hypothesis_testing, scale=TRUE)
+
+```
+
+
+```{r}
+
+Project_insights_2<-cbind(
+c(round(mean(ProjectData_male$attr_o),2),
+round(mean(ProjectData_female$attr_o),2),
+paste(percent(mean(ProjectData_male$attr1_1)/100)),
+paste(percent(mean(ProjectData_female$attr1_1)/100))
+),
+c(round(mean(ProjectData_male$sinc_o),2),
+round(mean(ProjectData_female$sinc_o),2),
+paste(percent(mean(ProjectData_male$sinc1_1)/100)),
+paste(percent(mean(ProjectData_female$sinc1_1)/100))
+),
+c(round(mean(ProjectData_male$intel_o),2),
+round(mean(ProjectData_female$intel_o),2),
+paste(percent(mean(ProjectData_male$intel1_1)/100)),
+paste(percent(mean(ProjectData_female$intel1_1)/100))
+),
+c(round(mean(ProjectData_male$fun_o),2),
+round(mean(ProjectData_female$fun_o),2),
+paste(percent(mean(ProjectData_male$fun1_1)/100)),
+paste(percent(mean(ProjectData_female$fun1_1)/100))
+),
+c(round(mean(ProjectData_male$amb_o),2),
+round(mean(ProjectData_female$amb_o),2),
+paste(percent(mean(ProjectData_male$amb1_1)/100)),
+paste(percent(mean(ProjectData_female$amb1_1)/100))
+)
+)
+
+
+dimnames(Project_insights_2)<-list(c("Average Men's Score","Average Women's Score","Importance for Men","Importance for Women"),c("Attractiveness","Sincerity","Intelligence","Fun","Ambition"))
+
+iprint.df(Project_insights_2, scale=TRUE)
+
+```
+
+**Attractiveness**
+
+```{r}
+
+par(mfrow = c(1, 2))
+
+plot(tapply(ProjectData_male$attr_o,factor(ProjectData_male$attr5_1),mean),xlim=c(0,10),ylim=c(0,10),main="Men", xlab="Self-perception", ylab="Others perception",col = 'blue',pch = 16)
+plot(tapply(ProjectData_female$attr_o,factor(ProjectData_female$attr5_1),mean),xlim=c(0,10),ylim=c(0,10), main="Women", xlab="Self-perception", ylab="",col = 'red',pch = 16)
+
+```
+
+**Sincerity**
+
+```{r}
+
+par(mfrow = c(1, 2))
+
+plot(tapply(ProjectData_male$sinc_o,factor(ProjectData_male$sinc5_1),mean),xlim=c(0,10),ylim=c(0,10),main="Men", xlab="Self-perception", ylab="Others perception",col = 'blue',pch = 16)
+plot(tapply(ProjectData_female$sinc_o,factor(ProjectData_female$sinc5_1),mean),xlim=c(0,10),ylim=c(0,10), main="Women", xlab="Self-perception", ylab="",col = 'red',pch = 16)
+
+```
+
+**Intelligence**
+
+```{r}
+
+par(mfrow = c(1, 2))
+
+plot(tapply(ProjectData_male$intel_o,factor(ProjectData_male$intel5_1),mean),xlim=c(0,10),ylim=c(0,10),main="Men", xlab="Self-perception", ylab="Others perception",col = 'blue',pch = 16)
+plot(tapply(ProjectData_female$intel_o,factor(ProjectData_female$intel5_1),mean),xlim=c(0,10),ylim=c(0,10), main="Women", xlab="Self-perception", ylab="",col = 'red',pch = 16)
+
+```
+
+**Fun**
+
+```{r}
+
+par(mfrow = c(1, 2))
+
+plot(tapply(ProjectData_male$fun_o,factor(ProjectData_male$fun5_1),mean),xlim=c(0,10),ylim=c(0,10),main="Men", xlab="Self-perception", ylab="Others perception",col = 'blue',pch = 16)
+plot(tapply(ProjectData_female$fun_o,factor(ProjectData_female$fun5_1),mean),xlim=c(0,10),ylim=c(0,10), main="Women", xlab="Self-perception", ylab="",col = 'red',pch = 16)
+
+```
+
+**Ambition**
+
+```{r}
+
+par(mfrow = c(1, 2))
+
+plot(tapply(ProjectData_male$amb_o,factor(ProjectData_male$amb5_1),mean),xlim=c(0,10),ylim=c(0,10),main="Men", xlab="Self-perception", ylab="Others perception",col = 'blue',pch = 16)
+plot(tapply(ProjectData_female$amb_o,factor(ProjectData_female$amb5_1),mean),xlim=c(0,10),ylim=c(0,10), main="Women", xlab="Self-perception", ylab="",col = 'red',pch = 16)
+
+```
