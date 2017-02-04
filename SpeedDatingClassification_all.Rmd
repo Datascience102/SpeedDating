@@ -93,7 +93,7 @@ ProjectData <- read.delim(file = datafile_name, sep = ";")
 
 ProjectData <- data.matrix(ProjectData[,]) 
 # (female - 0; male - 1; 2 - all)
-gender <- 0 # ie. 0 means that males make a decision; 1 means that females make a decision
+gender <- 2 # ie. 0 means that males make a decision; 1 means that females make a decision
 
 # rmarkdown::render("SpeedDatingClassification_all.Rmd")
 

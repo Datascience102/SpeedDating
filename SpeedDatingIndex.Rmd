@@ -1,6 +1,6 @@
 ---
 title: "Speed Dating"
-author: "Team"
+author: "Lukasz Gaweda, Gerasimos Skaltsas, Jonas Gossler, Sammy Hejazi, Mateusz Wozniak"
 date: "1/30/2017"
 output: html_document
 ---
@@ -9,11 +9,11 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Table of contents
+## Insights
+Quick summary here and link to <a href="link.html">output html</a>
 
-1. TBD
-2. TBD
-3. <a href="SpeedDatingClassification_all.html">Classification (general population)</a>
-4. <a href="SpeedDatingClassification_w.html">Classification - factors important for women</a>
-5. <a href="SpeedDatingClassification_m.html">Classification - factors important for men</a>
-6. Segmentation-dependent classification (TBD)
+## Segmentation
+Quick summary here and link to <a href="link.html">output html</a>s
+
+## Classification
+Quick summary here and link to <a href="link.html">output html</a>

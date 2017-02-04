@@ -1,5 +1,5 @@
 ---
-title: "SpeedDating market segmentation"
+title: "SpeedDating - prediciting success in speed dating"
 author: "T. Evgeniou; adapted by team"
 output:
   html_document:
@@ -15,40 +15,15 @@ output:
 always_allow_html: yes
 ---
 
-> **IMPORTANT**: Please make sure you create a copy of this file with a customized name, so that your work (e.g. answers to the questions) is not over-written when you pull the latest content from the course github. 
-This is a **template process for market segmentation based on survey data**, using the  [Boats cases A](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-A-prerelease.pdf) and  [B](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-B-prerelease.pdf).
-
-All material and code is available at the [INSEAD Data Analytics for Business](http://inseaddataanalytics.github.io/INSEADAnalytics/) website and github. Before starting, make sure you have pulled the [course files](https://github.com/InseadDataAnalytics/INSEADAnalytics) on your github repository.  As always, you can use the `help` command in Rstudio to find out about any R function (e.g. type `help(list.files)` to learn what the R function `list.files` does).
-
-
 <hr>\clearpage
 
-# The Business Questions
+# Speed Dating Insights
 
-This process can be used as a (starting) template for projects like the one described in the [Boats cases A](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-A-prerelease.pdf) and  [B](http://inseaddataanalytics.github.io/INSEADAnalytics/Boats-B-prerelease.pdf). For example (but not only), in this case some of the business questions were: 
+## The "Business Decision"
 
-- What are the main purchase drivers of the customers (and prospects) of this company? 
+We would like to understand how people rate themselves across **five attributes** (attractiveness, sincerity, intelligence, fun and ambition) and how this compares to the ratings they get from their dating partners.
 
-- Are there different market segments? Which ones? Do the purchase drivers differ across segments? 
-
-- What (possibly market segment specific) product development or brand positioning strategy should the company follow in order to increase its sales? 
-
-See for example some of the analysis of this case in  these slides: <a href="http://inseaddataanalytics.github.io/INSEADAnalytics/Sessions2_3 Handouts.pdf"  target="_blank"> part 1</a> and <a href="http://inseaddataanalytics.github.io/INSEADAnalytics/Sessions4_5 Handouts.pdf"  target="_blank"> part 2</a>.
-
-<hr>\clearpage
-
-# The Process
-
-The "high level" process template is split in 3 parts, corresponding to the course sessions 3-4, 5-6, and an optional last part: 
-
-1. *Part 1*: We use some of the survey questions (e.g. in this case the first 29 "attitude" questions) to find **key customer descriptors** ("factors") using *dimensionality reduction* techniques described in the [Dimensionality Reduction](http://inseaddataanalytics.github.io/INSEADAnalytics/CourseSessions/Sessions23/FactorAnalysisReading.html) reading of Sessions 3-4.
-
-2. *Part 2*: We use the selected customer descriptors to **segment the market** using *cluster analysis* techniques described in the [Cluster Analysis ](http://inseaddataanalytics.github.io/INSEADAnalytics/CourseSessions/Sessions45/ClusterAnalysisReading.html) reading of Sessions 5-6.
-
-3. *Part 3*: For the market segments we create, we will use *classification analysis* to classify people based on whether or not they have purchased a product and find what are the **key purchase drivers per segment**. For this part we will use [classification analysis ](http://inseaddataanalytics.github.io/INSEADAnalytics/CourseSessions/Sessions67/ClassificationAnalysisReading.html) techniques.
-
-Finally, we will use the results of this analysis to make business decisions e.g. about brand positioning, product development, etc depending on our market segments and key purchase drivers we find at the end of this process.
-
+## The Data
 
 ```{r setuplibraries, echo=FALSE, message=FALSE}
 suppressWarnings(source("lib/library.R"))
@@ -57,31 +32,52 @@ suppressWarnings(ggthemr('fresh'))  # ggplot theme
 opts_knit$set(progress=FALSE, verbose=FALSE)
 opts_chunk$set(echo=FALSE, fig.align="center", fig.width=10, fig.height=6.35, results="asis")
 options(knitr.kable.NA = '')
-```
 
-<hr>\clearpage
-
-# The Data
-
-First we load the data to use (see the raw .Rmd file to change the data file as needed):
-
-```{r setupdata1E, echo=TRUE, tidy=TRUE}
-# Please ENTER the name of the file with the data used. The file should be a .csv with one row per observation (e.g. person) and one column per attribute. Do not add .csv at the end, make sure the data are numeric.
 datafile_name = "data/SpeedDatingData_clean.csv"
 
-# Please enter the minimum number below which you would like not to print - this makes the readability of the tables easier. Default values are either 10e6 (to print everything) or 0.5. Try both to see the difference.
-MIN_VALUE = 0.5
-
-# Please enter the maximum number of observations to show in the report and slides. 
-# DEFAULT is 10. If the number is large the report may be slow.
-max_data_report = 30
-```
-
-```{r}
 ProjectData <- read.delim(file = datafile_name, sep = ";")
 
 ProjectData_INITIAL <- ProjectData
+
+max_data_report<-5
+
+independent_variables= c(25:30, 36, 40, 45:67) 
+
 ```
+
+We used the data from speed dating experiment conducted at Columbia Business School <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment">available on kaggle</a> 
+This is how the first `r min(max_data_report, nrow(ProjectData))` out of the total of `r nrow(ProjectData)` rows look:
+
+```{r echo=FALSE, message=FALSE, prompt=FALSE, results='asis'}
+# let's make the data into data.matrix classes so that we can easier visualize them
+ProjectDataMatrix = data.matrix(ProjectData)
+
+knitr::kable({
+  df <- t(head(round(ProjectDataMatrix[,independent_variables],2), max_data_report))
+  colnames(df) <- sprintf("%02d", 1:ncol(df))
+  df
+})
+```
+
+## The Process
+
+The "high level" process template to derive high level insights from the speed dating database is split in 3 parts: 
+
+1. *Part 1*: We use descrictive statistics (e.g. mean, standard deviation) to understand whether men and women tend to overvalue or undervalue themselves across the five studied attributes
+
+2. *Part 2*: We run hypothesis testing to estimate whether we can accept or reject with 99% confidence that men and women overvalue themselves
+
+
+3. *Part 3*: We plot the self-ratings of men and women against the ratings given by their dating-partners and we look for patterns of over/undervaluation across the two sexes
+
+
+<hr>\clearpage
+
+# Descriptive Statistics
+
+## Self-perception vs partner's rating
+
+For each participant we estimated the difference between his/her self-rating and that of the dating partner for the total rating as well as for each of the five attributes. Then we computed the mean and st deviation of that difference for the total population and then for men and women separately. Looking at the fraction of people that overvalue or unervalue themselves can provide us with meaningful insights about self-perception and dating behavior
 
 ```{r}
 ProjectData$Delta_attr<-ProjectData$attr_o - ProjectData$attr5_1
@@ -143,6 +139,71 @@ iprint.df(Project_insights, scale=TRUE)
 
 ```
 
+## Importance of each attribute
+
+Next, we estimate the average score that men and women get from their dating partners' and the importance of its attribute for mens' and womens' matching decision.
+
+```{r}
+
+Project_insights_2<-cbind(
+c(round(mean(ProjectData_male$attr_o),2),
+round(mean(ProjectData_female$attr_o),2),
+paste(percent(mean(ProjectData_male$attr1_1)/100)),
+paste(percent(mean(ProjectData_female$attr1_1)/100))
+),
+c(round(mean(ProjectData_male$sinc_o),2),
+round(mean(ProjectData_female$sinc_o),2),
+paste(percent(mean(ProjectData_male$sinc1_1)/100)),
+paste(percent(mean(ProjectData_female$sinc1_1)/100))
+),
+c(round(mean(ProjectData_male$intel_o),2),
+round(mean(ProjectData_female$intel_o),2),
+paste(percent(mean(ProjectData_male$intel1_1)/100)),
+paste(percent(mean(ProjectData_female$intel1_1)/100))
+),
+c(round(mean(ProjectData_male$fun_o),2),
+round(mean(ProjectData_female$fun_o),2),
+paste(percent(mean(ProjectData_male$fun1_1)/100)),
+paste(percent(mean(ProjectData_female$fun1_1)/100))
+),
+c(round(mean(ProjectData_male$amb_o),2),
+round(mean(ProjectData_female$amb_o),2),
+paste(percent(mean(ProjectData_male$amb1_1)/100)),
+paste(percent(mean(ProjectData_female$amb1_1)/100))
+)
+)
+
+
+dimnames(Project_insights_2)<-list(c("Average Men's Score","Average Women's Score","Importance for Men","Importance for Women"),c("Attractiveness","Sincerity","Intelligence","Fun","Ambition"))
+
+iprint.df(Project_insights_2, scale=TRUE)
+
+```
+
+## Discussion
+
+Based on the above statistics, we can derive the following insights:
+
+* Both, men and women rate themselves on average better than their dating partners
+* There is no significant difference in the gap between self- and external perception between men and women, the only remarkable difference is regarding sincerity. Women think of themselves way more sincere than they are perceived by their dates – this effect is less distinct vice versa
+* Attractiveness is the by far most important factor at dates for men. 
+* Women seem to be overall more balanced in their preferences with attractiveness, sincerity, intelligence and fun being almost equally rated.
+* There are no major differences between average ratings for men and women on average
+* Attractiveness tends to be the lowest-rated attribute for both genders although / or because of it is one of the attributes with the highest importance
+* Intelligence and Sincerity are highest-rated (would be interesting to analyze if those factors have a high ipact on match, I guess not)
+* Overall, there is no significant difference between male and female valuations during speed-dating, neither in self-perception nor in rating the partners. However, it is yet to be analyzed how / if their ratings have differing influences on final decisions
+
+<hr>\clearpage
+
+# Hypothesis Testing
+
+To validate the significance of the above inisghts, we run a one-sided hypothesis testing
+
+Hypotheses:
+
+H0:  μ-delta >= 0
+
+HA:  μ-delta <  0  (meaning that self-rating is higher than partner's rating, i.e. overrating)
 
 ```{r}
 
@@ -188,45 +249,13 @@ iprint.df(Hypothesis_testing, scale=TRUE)
 
 ```
 
+On the basis of these results, we conclude that men and women tend to overrate themselves across all five attributes.
 
-```{r}
+<hr>\clearpage
 
-Project_insights_2<-cbind(
-c(round(mean(ProjectData_male$attr_o),2),
-round(mean(ProjectData_female$attr_o),2),
-paste(percent(mean(ProjectData_male$attr1_1)/100)),
-paste(percent(mean(ProjectData_female$attr1_1)/100))
-),
-c(round(mean(ProjectData_male$sinc_o),2),
-round(mean(ProjectData_female$sinc_o),2),
-paste(percent(mean(ProjectData_male$sinc1_1)/100)),
-paste(percent(mean(ProjectData_female$sinc1_1)/100))
-),
-c(round(mean(ProjectData_male$intel_o),2),
-round(mean(ProjectData_female$intel_o),2),
-paste(percent(mean(ProjectData_male$intel1_1)/100)),
-paste(percent(mean(ProjectData_female$intel1_1)/100))
-),
-c(round(mean(ProjectData_male$fun_o),2),
-round(mean(ProjectData_female$fun_o),2),
-paste(percent(mean(ProjectData_male$fun1_1)/100)),
-paste(percent(mean(ProjectData_female$fun1_1)/100))
-),
-c(round(mean(ProjectData_male$amb_o),2),
-round(mean(ProjectData_female$amb_o),2),
-paste(percent(mean(ProjectData_male$amb1_1)/100)),
-paste(percent(mean(ProjectData_female$amb1_1)/100))
-)
-)
+# Plots
 
-
-dimnames(Project_insights_2)<-list(c("Average Men's Score","Average Women's Score","Importance for Men","Importance for Women"),c("Attractiveness","Sincerity","Intelligence","Fun","Ambition"))
-
-iprint.df(Project_insights_2, scale=TRUE)
-
-```
-
-**Attractiveness**
+##Attractiveness
 
 ```{r}
 
@@ -237,7 +266,11 @@ plot(tapply(ProjectData_female$attr_o,factor(ProjectData_female$attr5_1),mean),x
 
 ```
 
-**Sincerity**
+* Men show a high-degree of self-awareness regarding their attractiveness relative to other men.
+* Men tend to consider the women they dated fairly attractive regardless of how these women are perceiving themselves. Interestingly though, women who consider themselves as the most attracive (score: 8), are perceived as the least attractive by their dating partners.
+
+
+##Sincerity
 
 ```{r}
 
@@ -248,7 +281,10 @@ plot(tapply(ProjectData_female$sinc_o,factor(ProjectData_female$sinc5_1),mean),x
 
 ```
 
-**Intelligence**
+* Both men and women are perceived by their dating partners as fairly sincere (score: 7+), regardless of their self-perception.
+
+
+##Intelligence
 
 ```{r}
 
@@ -259,7 +295,10 @@ plot(tapply(ProjectData_female$intel_o,factor(ProjectData_female$intel5_1),mean)
 
 ```
 
-**Fun**
+* Men who rate themselves very low with regards to their intelligence, are considered on average as the most intelligent by their dating partners, indicating that very smart people might also be the most modest.
+* Women receive on average the same rating from their partners, regardless of how they pereceive themselves.
+
+##Fun
 
 ```{r}
 
@@ -270,7 +309,10 @@ plot(tapply(ProjectData_female$fun_o,factor(ProjectData_female$fun5_1),mean),xli
 
 ```
 
-**Ambition**
+* Men show a high-degree of self-awareness with regards to how funny they are relative to other men.
+
+
+##Ambition
 
 ```{r}
 
@@ -280,3 +322,7 @@ plot(tapply(ProjectData_male$amb_o,factor(ProjectData_male$amb5_1),mean),xlim=c(
 plot(tapply(ProjectData_female$amb_o,factor(ProjectData_female$amb5_1),mean),xlim=c(0,10),ylim=c(0,10), main="Women", xlab="Self-perception", ylab="",col = 'red',pch = 16)
 
 ```
+
+* Men with very low ambitions are easily recognized as such by their dating partners.
+* Both men and women receive on average the same rating from their partners (score: ~7), regardless of how they pereceive themselves.
+
