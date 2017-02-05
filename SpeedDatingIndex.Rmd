@@ -21,10 +21,16 @@ It is recommended to read all sections in the below order.
 ## Insights
 <a href="SpeedDatingInsights.html">Interesting insights</a>
 
+<a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/mwozniak86/SpeedDating/master/SpeedDatingInsights.html">[Alternative link]</a>
+
 ## Segmentation
 <a href="SpeedDatingMarketSegmentation.html">Speed Dating users segmentation</a>
 
+<a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/mwozniak86/SpeedDating/master/SpeedDatingMarketSegmentation.html">[Alternative link]</a>
+
 ## Classification
 <a href="SpeedDatingClassification.html">Speed Dating users classification</a>
+
+<a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/mwozniak86/SpeedDating/master/SpeedDatingClassification.html">[Alternative link]</a>
 
 <hr>\clearpage
