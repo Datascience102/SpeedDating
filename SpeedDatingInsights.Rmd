@@ -45,7 +45,8 @@ independent_variables= c(25:30, 36, 40, 45:67)
 
 ```
 
-We used the data from speed dating experiment conducted at Columbia Business School <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment">available on kaggle</a> 
+We used the data from speed dating experiment conducted at Columbia Business School <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment">available on kaggle</a>. Refer to <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment/downloads/speed-dating-experiment.zip"> docummentation</a href> for more details about used attributes or jump to the <a href="SpeedDatingMarketSegmentation.html">segmentation section</a href> for short description.
+
 This is how the first `r min(max_data_report, nrow(ProjectData))` out of the total of `r nrow(ProjectData)` rows look:
 
 ```{r echo=FALSE, message=FALSE, prompt=FALSE, results='asis'}
