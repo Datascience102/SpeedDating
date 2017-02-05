@@ -485,9 +485,9 @@ rownames(estimation_hit_rates) <- c("First CART", "Second CART", "Logistic Regre
 knitr::kable(estimation_hit_rates)
 ```
 
-A simple benchmark to compare the performance of a classification model against is the **Maximum Chance Criterion**. This measures the proportion of the class with the largest size. For our validation data the largest group is people who do not intent do purchase a boat: `r sum(!validation_actual)` out of `r length(validation_actual)` people). Clearly without doing any discriminant analysis, if we classified all individuals into the largest group,  we could get a hit-rate of `r round(100*sum(!validation_actual)/length(validation_actual), 2)`% - without doing any work. 
+For our validation data if we classified all individuals into the largest group, we could get a hit-rate of `r round(100*sum(!validation_actual)/length(validation_actual), 2)`% - without doing any work. 
 
-In our case this particular criterion is met for all the methods that were used.
+As can be seen above, used methods yield better results.
 
 ### 2. Confusion matrix
 
