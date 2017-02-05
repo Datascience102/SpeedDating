@@ -57,7 +57,7 @@ ProjectData_INITIAL <- ProjectData
 # Part 1: Key Customer Characteristics
 
 Out of the data set, we have chosen several attributes that will take part in the segmentation analysis.
-Those qualities reflect following questions from the survey:
+Those qualities reflect following questions from the survey (refer to <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment/downloads/speed-dating-experiment.zip"> docummentation</a href> for more details):
 
 Question | Attribute
 :-----------|:--------------------------------------------------------------------
@@ -66,7 +66,7 @@ Question | Attribute
 "sports", "tvsports", etc. | How interested are you in the following activities, on a scale of 1-10?
 "exphappy" | Overall, on a scale of 1-10, how happy do you expect to be with the people you meet during the speed-dating event?
 "attr1_1", "sinc1_1", etc. | We want to know what you look for in the opposite sex. Please rate the importance of the following attributes in a potential date on a scale of 0-100 (0=not at all important, 100=extremely important) (attractive, sincere, intelligent, fun, ambitions, shared interests/hobbies)
-"attr2_1", "sinc2_1", etc. | What do you think the opposite sex looks for in a date? Waves 6-9: Please rate the importance of the following attributes on a scale of 0-100 (0=not at all important, 100=extremely important) (attractive, sincere, intelligent, fun, ambitions, shared interests/hobbies)
+"attr2_1", "sinc2_1", etc. | What do you think the opposite sex looks for in a date? Please rate the importance of the following attributes on a scale of 0-100 (0=not at all important, 100=extremely important) (attractive, sincere, intelligent, fun, ambitions, shared interests/hobbies)
 "attr3_1", "sinc3_1", etc. | How do you think you measure up? Please rate your opinion of your own attributes, on a scale of 0-10 (be honest!) (attractive, sincere, intelligent, fun, ambitions, shared interests/hobbies)
 
 Based on the results of our iterative process, we have decided to optimize the factor-seeking algorithm for 8 factors (more details below)
