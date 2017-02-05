@@ -1,19 +1,30 @@
 ---
-title: "Speed Dating"
+title: "SpeedDating - prediciting success in speed dating"
 author: "Lukasz Gaweda, Gerasimos Skaltsas, Jonas Gossler, Sammy Hejazi, Mateusz Wozniak"
 date: "1/30/2017"
 output: html_document
 ---
+<hr>\clearpage
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Introduction
+
+This report is composed of three sections. First section discusses several interesting findings in analyzed dataset. Second section focuses on preference-based segmentation. The last section presents classification and discusses effectiveness of classification performed on a general dataset as well as per segment.
+
+As a follow-up to this exercise, we could perhaps conduct a research to assess predictive power of our classification in real setup. In the meantime, please refer to respective sections for more details.
+
+It is recommended to read all sections in the below order.
+
 ## Insights
-Quick summary here and link to <a href="link.html">output html</a>
+<a href="SpeedDatingInsights.html">Interesting insights</a>
 
 ## Segmentation
-Quick summary here and link to <a href="link.html">output html</a>s
+<a href="SpeedDatingMarketSegmentation.html">Speed Dating users segmentation</a>
 
 ## Classification
-Quick summary here and link to <a href="link.html">output html</a>
+<a href="SpeedDatingClassification.html">Speed Dating users classification</a>
+
+<hr>\clearpage

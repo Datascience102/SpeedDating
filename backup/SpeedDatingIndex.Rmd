@@ -1,0 +1,19 @@
+---
+title: "Speed Dating"
+author: "Lukasz Gaweda, Gerasimos Skaltsas, Jonas Gossler, Sammy Hejazi, Mateusz Wozniak"
+date: "1/30/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Insights
+Quick summary here and link to <a href="link.html">output html</a>
+
+## Segmentation
+Quick summary here and link to <a href="link.html">output html</a>s
+
+## Classification
+Quick summary here and link to <a href="link.html">output html</a>
