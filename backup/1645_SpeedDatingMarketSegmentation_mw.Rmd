@@ -1,0 +1,413 @@
+
+```{r setuplibraries, echo=FALSE, message=FALSE}
+suppressWarnings(source("lib/library.R"))
+# Package options
+suppressWarnings(ggthemr('fresh'))  # ggplot theme
+opts_knit$set(progress=FALSE, verbose=FALSE)
+opts_chunk$set(echo=FALSE, fig.align="center", fig.width=10, fig.height=6.35, results="asis")
+options(knitr.kable.NA = '')
+```
+
+<hr>\clearpage
+
+# The Data
+
+First we load the data that we use in segmentation:
+
+```{r setupdata1E, echo=TRUE, tidy=TRUE}
+# Please ENTER the name of the file with the data used. The file should be a .csv with one row per observation (e.g. person) and one column per attribute. Do not add .csv at the end, make sure the data are numeric.
+datafile_name = "data/SpeedDatingData_clean.csv"
+
+# Please enter the minimum number below which you would like not to print - this makes the readability of the tables easier. Default values are either 10e6 (to print everything) or 0.5. Try both to see the difference.
+MIN_VALUE = 0.5
+
+# Please enter the maximum number of observations to show in the report and slides. 
+# DEFAULT is 10. If the number is large the report may be slow.
+max_data_report = 30
+```
+
+```{r}
+ProjectData <- read.delim(file = datafile_name, sep = ";")
+ProjectData <- data.matrix(ProjectData) 
+ProjectData_INITIAL <- ProjectData
+```
+
+<hr>\clearpage
+
+# Part 1: Key Customer Characteristics
+
+Out of the data set, we have chosen several attributes that will take part in the segmentation analysis.
+Those qualities reflect following questions form survey:
+* "date" - In general, how frequently do you go on dates? [1-several times a week, 7-never]
+* "go_out" - How often do you go out (not necessarily on dates)? [1-several times a week, 7-never]
+* "sports","tvsports","exercise","dining","museums","art","hiking","gaming","clubbing","reading",
+"tv","theater","movies","concerts","music","shopping","yoga" - How interested are you in the following activities, on a scale of 1-10?
+* "exphappy" - Overall, on a scale of 1-10, how happy do you expect to be with the people you meet 
+during the speed-dating event?
+* We want to know what you look for in the opposite sex. Please rate the importance of the following attributes in a potential date on a scale of 0-100 (0=not at all important, 100=extremely important)
+ - "attr1_1" - Attractive
+ - "sinc1_1" - Sincere
+ - "intel1_1" - Intelligent
+ - "fun1_1" - Fun
+ - "amb1_1" - Ambitions
+ - "shar1_1" - Shared Interests/Hobbies
+
+ * What do you think the opposite sex looks for in a date? Waves 6-9: Please rate the importance of the following attributes on a scale of 0-100 (0=not at all important, 100=extremely important)
+ - "attr2_1" - Attractive
+ - "sinc2_1" - Sincere
+ - "intel2_1" - Intelligent
+ - "fun2_1" - Fun
+ - "amb2_1" - Ambitions
+ - "shar2_1" - Shared Interests/Hobbies
+
+ * How do you think you measure up? Please rate your opinion of your own attributes, on a scale of 0-10 (be honest!):
+ - "attr3_1" - Attractive
+ - "sinc3_1" - Sincere
+ - "fun3_1" - Intelligent
+ - "intel3_1" - Fun
+ - "amb3_1" - Ambitions
+
+Based on the results of our iterative process, we have decided to optimize the factor-seeking algorithm for 8 factors
+
+```{r setupfactor, echo=TRUE, tidy=TRUE}
+
+factor_attributes_used = c("date","go_out","sports","tvsports","exercise","dining","museums","art","hiking","gaming","clubbing","reading","tv","theater","movies","concerts","music","shopping","yoga","exphappy","attr1_1","sinc1_1","intel1_1","fun1_1","amb1_1","shar1_1","attr2_1","sinc2_1","intel2_1","fun2_1","amb2_1","shar2_1","attr3_1","sinc3_1","fun3_1","intel3_1","amb3_1","sinc3_1","fun3_1","intel3_1","amb3_1")
+
+# Please ENTER the selection criterions for the factors to use. 
+# Choices: "eigenvalue", "variance", "manual"
+factor_selectionciterion = "manual"
+
+
+
+# Please ENTER the number of factors to use 
+# (Only used in case "manual" is the factor selection criterion used).
+manual_numb_factors_used = 8
+
+# Please ENTER the rotation eventually used (e.g. "none", "varimax", "quatimax", "promax", "oblimin", "simplimax", and "cluster" - see help(principal)). Default is "varimax"
+rotation_used = "varimax"
+```
+
+```{r}
+idx <- c(1: length(factor_attributes_used))
+idx <- idx*0
+i <- 0
+for (c in factor_attributes_used) {
+  i <- i + 1
+  idx[i] <- which(colnames(ProjectData) == c)
+}
+
+factor_attributes_used <- intersect(idx, 1:ncol(ProjectData))
+ProjectDataFactor <- ProjectData[,factor_attributes_used]
+ProjectDataFactor <- ProjectData <- data.matrix(ProjectDataFactor)
+
+# remove rows with empty cells
+ProjectDataFactor <- ProjectDataFactor[rowSums(is.na(ProjectDataFactor)) == 0,]
+
+```
+
+## Steps 1-2: Data check
+
+
+We have computed the statistical summary of the distribution of the values across the selected attributes:
+
+```{r}
+iprint.df(round(my_summary(ProjectDataFactor), 2))
+```
+
+## Step 3: Correlations Check
+
+We have verified the correlaction between the selected attributes that will be later picked up by factors:
+
+```{r}
+
+thecor = round(cor(ProjectDataFactor),2)
+iprint.df(round(thecor,2), scale=TRUE)
+```
+
+
+## Step 4: Factor design
+
+We have computed a list of factors, from which we have picked top 8 that represent over 50% of variance
+
+```{r}
+# Here is how the `principal` function is used 
+UnRotated_Results<-principal(ProjectDataFactor, nfactors=ncol(ProjectDataFactor), rotate="none",score=TRUE)
+UnRotated_Factors<-round(UnRotated_Results$loadings,2)
+UnRotated_Factors<-as.data.frame(unclass(UnRotated_Factors))
+colnames(UnRotated_Factors)<-paste("Comp",1:ncol(UnRotated_Factors),sep="")
+```
+
+```{r}
+# Here is how we use the `PCA` function 
+Variance_Explained_Table_results<-PCA(ProjectDataFactor, graph=FALSE)
+Variance_Explained_Table<-Variance_Explained_Table_results$eig
+Variance_Explained_Table_copy<-Variance_Explained_Table
+
+rownames(Variance_Explained_Table) <- paste("Component", 1:nrow(Variance_Explained_Table), sep=" ")
+colnames(Variance_Explained_Table) <- c("Eigenvalue", "Pct of explained variance", "Cumulative pct of explained variance")
+```
+
+
+
+```{r}
+iprint.df(round(Variance_Explained_Table, 2))
+```
+
+```{r}
+eigenvalues  <- Variance_Explained_Table[, "Eigenvalue"]
+df           <- cbind(as.data.frame(eigenvalues), c(1:length(eigenvalues)), rep(1, length(eigenvalues)))
+colnames(df) <- c("eigenvalues", "components", "abline")
+iplot.df(melt(df, id="components"))
+```
+
+We decided to look into the composition of the factors.
+
+```{r}
+if (factor_selectionciterion == "eigenvalue")
+  factors_selected = sum(Variance_Explained_Table_copy[,1] >= 1)
+if (factor_selectionciterion == "variance")
+  factors_selected = 1:head(which(Variance_Explained_Table_copy[,"cumulative percentage of variance"]>= minimum_variance_explained),1)
+if (factor_selectionciterion == "manual")
+  factors_selected = manual_numb_factors_used
+
+Rotated_Results<-principal(ProjectDataFactor, nfactors=max(factors_selected), rotate=rotation_used,score=TRUE)
+Rotated_Factors<-round(Rotated_Results$loadings,2)
+Rotated_Factors<-as.data.frame(unclass(Rotated_Factors))
+colnames(Rotated_Factors)<-paste("Comp.",1:ncol(Rotated_Factors),sep="")
+
+sorted_rows <- sort(Rotated_Factors[,1], decreasing = TRUE, index.return = TRUE)$ix
+Rotated_Factors <- Rotated_Factors[sorted_rows,]
+
+iprint.df(Rotated_Factors, scale=TRUE)
+```
+
+
+For better clarity, we have left only significant values that would help us to interpret the factors
+
+
+```{r}
+Rotated_Factors_thres <- Rotated_Factors
+Rotated_Factors_thres[abs(Rotated_Factors_thres) < MIN_VALUE]<-NA
+colnames(Rotated_Factors_thres)<- colnames(Rotated_Factors)
+rownames(Rotated_Factors_thres)<- rownames(Rotated_Factors)
+
+iprint.df(Rotated_Factors_thres, scale=TRUE)
+```
+
+
+
+
+## Step 6:  Factor score interpretation
+
+Based on our internal discussions, we have come up with following interpretation to the factors:
+
+* Factor 1: High Culture intensive hobby
+* Factor 2: Highly-ambitious Self-flattering Attitude
+* Factor 3: Belief in High-moral stadnards
+* Factor 4: Body-over-mind focus
+* Factor 5: Procrastinating hobby
+* Factor 6: Belief in soul-mating
+* Factor 7: Intelligence-focus
+* Factor 8: Fun-seeking approach
+
+
+
+# Part 2: Customer Segmentation
+
+Based on our deiftion of the factors, we have selected the key attributes that will be used for customer segmentation
+
+
+
+
+```{r setupcluster, echo=TRUE, tidy=TRUE}
+
+segmentation_attributes_used = c("museums","attr3_1","attr2_1","sports","tv","shar1_1","sinc3_1")
+
+# Please ENTER then original raw attributes to use for the profiling of the segments (the "profiling attributes")
+# Please use numbers, not column names, e.g. c(1:5, 7, 8) uses columns 1,2,3,4,5,7,8
+# profile_attributes_used = c("attr_o","sinc_o","intel_o","fun_o","amb_o","shar_o","like_o","prob_o","met_o","gender","age","race")
+
+profile_attributes_used = c(3:40,42:100)
+
+# Please ENTER the number of clusters to eventually use for this report
+numb_clusters_used = 4 # for boats possibly use 5, for Mall_Visits use 3
+
+# Please enter the method to use for the segmentation:
+profile_with = "kmeans" #  "hclust" or "kmeans"
+
+# Please ENTER the distance metric eventually used for the clustering in case of hierarchical clustering
+# (e.g. "euclidean", "maximum", "manhattan", "canberra", "binary" or "minkowski" - see help(dist)).
+# DEFAULT is "euclidean"
+distance_used = "euclidean"
+
+# Please ENTER the hierarchical clustering method to use (options are:
+# "ward", "single", "complete", "average", "mcquitty", "median" or "centroid").
+# DEFAULT is "ward"
+hclust_method = "ward.D"
+
+# Please ENTER the kmeans clustering method to use (options are:
+# "Hartigan-Wong", "Lloyd", "Forgy", "MacQueen").
+# DEFAULT is "Lloyd"
+kmeans_method = "Lloyd"
+
+ProjectData <- ProjectData_INITIAL
+
+idx <- c(1: length(segmentation_attributes_used))
+idx <- idx*0
+i <- 0
+for (c in segmentation_attributes_used) {
+  i <- i + 1
+  idx[i] <- which(colnames(ProjectData) == c)
+}
+
+segmentation_attributes_used <- intersect(idx, 1:ncol(ProjectData))
+profile_attributes_used <- intersect(profile_attributes_used, 1:ncol(ProjectData))
+
+ProjectData_segment <- ProjectData[,segmentation_attributes_used]
+ProjectData_profile <- ProjectData[,profile_attributes_used]
+
+idx <- rowSums(is.na(ProjectData_segment)) == 0
+ProjectData_segment <- ProjectData_segment[idx,]
+ProjectData_profile <- ProjectData_profile[idx,]
+ProjectData <- ProjectData[idx,]
+
+# ProjectData_scaled=apply(ProjectData,2, function(r) {if (sd(r)!=0) res=(r-mean(r))/sd(r) else res=0*r; res})
+```
+
+
+
+
+In order to understand how different would the potential Speed Date attendants be, we have used the Hclust method to compute a dendrogram. Based on it, have we decided to choose 4 as the most optimal number of segments.
+
+```{r}
+Hierarchical_Cluster_distances <- dist(ProjectData_segment, method=distance_used)
+Hierarchical_Cluster <- hclust(Hierarchical_Cluster_distances, method=hclust_method)
+# Display dendogram
+iplot.dendrogram(Hierarchical_Cluster)
+# TODO: Draw dendogram with red borders around the 3 clusters
+# rect.hclust(Hierarchical_Cluster, k=numb_clusters_used, border="red")
+```
+
+```{r}
+num <- nrow(ProjectData) - 1
+df1 <- cbind(as.data.frame(Hierarchical_Cluster$height[length(Hierarchical_Cluster$height):1]), c(1:num))
+colnames(df1) <- c("distances","index")
+iplot.df(melt(head(df1, 20), id="index"), xlab="Number of Components")
+```
+
+```{r}
+cluster_memberships_hclust <- as.vector(cutree(Hierarchical_Cluster, k=numb_clusters_used)) # cut tree into 3 clusters
+cluster_ids_hclust=unique(cluster_memberships_hclust)
+
+ProjectData_with_hclust_membership <- cbind(1:length(cluster_memberships_hclust),cluster_memberships_hclust)
+colnames(ProjectData_with_hclust_membership)<-c("Observation Number","Cluster_Membership")
+
+# iprint.df(round(head(ProjectData_with_hclust_membership, max_data_report), 2))
+```
+
+
+## Profiling and segmenting
+
+In order to be able to profile the segments, we have looked into information shared by average Speed Dating survey responders.
+
+```{r}
+kmeans_clusters <- kmeans(ProjectData_segment,centers= numb_clusters_used, iter.max=2000, algorithm=kmeans_method)
+cluster_memberships_kmeans <- kmeans_clusters$cluster
+cluster_ids_kmeans <- unique(cluster_memberships_kmeans)
+
+if (profile_with == "hclust"){
+  cluster_memberships <- cluster_memberships_hclust
+  cluster_ids <-  cluster_ids_hclust
+}
+if (profile_with == "kmeans"){
+  cluster_memberships <- cluster_memberships_kmeans
+  cluster_ids <-  cluster_ids_kmeans
+}
+
+# WE WILL USE THESE IN THE CLASSIFICATION PART LATER
+NewData = matrix(cluster_memberships,ncol=1)
+
+population_average = matrix(apply(ProjectData_profile, 2, mean), ncol=1)
+colnames(population_average) <- "Population"
+Cluster_Profile_mean <- sapply(sort(cluster_ids), function(i) apply(ProjectData_profile[(cluster_memberships==i), ], 2, mean))
+if (ncol(ProjectData_profile) <2)
+  Cluster_Profile_mean=t(Cluster_Profile_mean)
+colnames(Cluster_Profile_mean) <- paste("Seg.", 1:length(cluster_ids), sep="")
+cluster.profile <- cbind (population_average,Cluster_Profile_mean)
+
+iprint.df(round(cluster.profile, 2))
+```
+
+We have plot "snake plots" for the profiling process to be easier to visualize (e.g. by identifying qualities with largest differences between the segments).
+
+```{r}
+#ProjectData_scaled_profile = ProjectData_scaled[, profile_attributes_used,drop=F]
+ProjectData_scaled_profile = ProjectData[, profile_attributes_used,drop=F]
+
+Cluster_Profile_standar_mean <- sapply(sort(cluster_ids), function(i) apply(ProjectData_scaled_profile[(cluster_memberships==i), ,drop = F], 2, mean))
+if (ncol(ProjectData_scaled_profile) < 2)
+  Cluster_Profile_standar_mean = t(Cluster_Profile_standar_mean)
+colnames(Cluster_Profile_standar_mean) <- paste("Seg ", 1:length(cluster_ids), sep="")
+
+iplot.df(melt(cbind.data.frame(idx=as.numeric(1:nrow(Cluster_Profile_standar_mean)), Cluster_Profile_standar_mean), id="idx"), xlab="Profiling variables (standardized)",  ylab="Mean of cluster")
+```
+
+As well as looking at the deviation of the data from the average numbers for the total population. We have hid the deviations of low significance.
+
+```{r}
+population_average_matrix <- population_average[,"Population",drop=F] %*% matrix(rep(1,ncol(Cluster_Profile_mean)),nrow=1)
+cluster_profile_ratios <- (ifelse(population_average_matrix==0, 0,Cluster_Profile_mean/population_average_matrix))
+colnames(cluster_profile_ratios) <- paste("Seg.", 1:ncol(cluster_profile_ratios), sep="")
+rownames(cluster_profile_ratios) <- colnames(ProjectData)[profile_attributes_used]
+## printing the result in a clean-slate table
+
+cluster_profile_ratios[abs(cluster_profile_ratios-1) < 0.2]<-NA
+
+iprint.df(round(cluster_profile_ratios-1, 2))
+
+```
+
+As a result, we have realized that the key differences in Speed Dating attendants across all segments are:
+* Gender
+* Income (although the income was based on postcodes)
+* Importance of religion (i.e. the potential partner is of same religion)
+
+```{r}
+population_average = matrix(apply(ProjectData_profile, 2, mean), ncol=1)
+colnames(population_average) <- "Population"
+Cluster_Profile_mean <- sapply(sort(cluster_ids), function(i) apply(ProjectData_profile[(cluster_memberships==i), ], 2, mean))
+if (ncol(ProjectData_profile) <2)
+  Cluster_Profile_mean=t(Cluster_Profile_mean)
+colnames(Cluster_Profile_mean) <- paste("Segment", 1:length(cluster_ids), sep=" ")
+cluster.profile <- cbind (population_average,Cluster_Profile_mean)
+
+knitr::kable(round(cluster.profile, 2))
+population_average_matrix <- population_average[,"Population",drop=F] %*% matrix(rep(1,ncol(Cluster_Profile_mean)),nrow=1)
+cluster_profile_ratios <- (ifelse(population_average_matrix==0, 0,Cluster_Profile_mean/population_average_matrix-1))
+colnames(cluster_profile_ratios) <- paste("Segment", 1:ncol(cluster_profile_ratios), sep=" ")
+rownames(cluster_profile_ratios) <- colnames(ProjectData)[profile_attributes_used]
+## printing the result in a clean-slate table
+knitr::kable(round(cluster_profile_ratios, 2))
+```
+
+
+We have saved our segmentation output in order to use it in the next part of the analysis.
+```{r}
+# save segmentation dependent outputs
+ProjectData_with_kmeans_membership <- cbind(1:length(kmeans_clusters$cluster),kmeans_clusters$cluster)
+colnames(ProjectData_with_kmeans_membership)<-c("Observation Number","Cluster_Membership")
+
+idxs <- unique(ProjectData_with_kmeans_membership[,2])
+
+y <- c("gender","match","samerace","age_o","race_o","pf_o_att","pf_o_sin","pf_o_int","pf_o_fun","pf_o_amb","pf_o_sha","dec_o","attr_o","sinc_o","intel_o","fun_o","amb_o","shar_o","like_o","prob_o","met_o","age","field_cd","race","goal","date","go_out","career_c","sports","tvsports","exercise","dining","museums","art","hiking","gaming","clubbing","reading","tv","theater","movies","concerts","music","shopping","yoga","attr1_1","sinc1_1","intel1_1","fun1_1","amb1_1","shar1_1","attr3_1","sinc3_1","fun3_1","intel3_1","amb3_1","dec")
+
+for (i in idxs) {
+  x <- which(ProjectData_with_kmeans_membership[,2]==i)
+  output <- ProjectData[x,y]
+  # save to csv - only selected columns
+  write.csv(output, file = paste("data/SpeedDating_segmented_", i, ".csv", sep = ""))
+}
+```
+
+
+<hr>\clearpage

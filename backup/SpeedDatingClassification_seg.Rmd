@@ -1,0 +1,764 @@
+---
+title: "SpeedDating - prediciting success in speed dating"
+author: "T. Evgeniou; adapted by team"
+output:
+  html_document:
+    css: styles/default.css
+    theme: paper
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    includes:
+      in_header: styles/default.sty
+---
+
+```{r echo=FALSE}
+make_pdf_file = 0 # SET THIS TO 1 IF WE COMPILE PDF FILE, 0 OTHERWISE (FOR HTML)
+
+local_directory = "."
+source(paste(local_directory,"lib/library.R", sep="/"))
+source(paste(local_directory,"lib/heatmapOutput.R", sep = "/"))
+
+# Package options
+ggthemr('fresh')  # ggplot theme
+opts_knit$set(progress=FALSE, verbose=FALSE)
+opts_chunk$set(echo=FALSE, fig.align="center", fig.width=10, fig.height=6.2)
+options(knitr.kable.NA = '')
+
+dformat <-function(df) {
+  if (class(df) != "data.frame")
+    df <- as.data.frame(df)
+  x <- lapply(colnames(df), function(col) {
+    if (is.numeric(df[, col]))
+      normalize_bar(rgb(238, 238, 238, max=255), min=0.1, na.rm=TRUE)
+    else
+      formatter("span")
+  })
+  names(x) <- colnames(df)
+  formattable(df, x)
+}
+
+if (make_pdf_file) {
+  dformat<- function(df) knitr::kable(df)
+}
+
+# SET UP
+
+cluster_file_ini = "Boats_cluster" # make sure this file exists in the "data" directory
+# Please ENTER the class (dependent) variable:
+# Please use numbers, not column names! e.g. 82 uses the 82nd column are dependent variable.
+# YOU NEED TO MAKE SURE THAT THE DEPENDENT VARIABLES TAKES ONLY 2 VALUES: 0 and 1!!!
+dependent_variable= 12 # match: 2; decision_o: 12
+
+# Please ENTER the attributes to use as independent variables 
+# Please use numbers, not column names! e.g. c(1:5, 7, 8) uses columns 1,2,3,4,5,7,8
+#independent_variables= c(3:11, 13:18, 21:45) 
+independent_variables= c(13:18, 23:45) 
+
+# Please ENTER the profit/cost values for the correctly and wrong classified data:
+actual_1_predict_1 = 100
+actual_1_predict_0 = -75
+actual_0_predict_1 = -50
+actual_0_predict_0 = 0
+
+# Please ENTER the probability threshold above which an observations  
+# is predicted as class 1:
+Probability_Threshold=50 # between 1 and 99%
+
+# Please ENTER the percentage of data used for estimation
+estimation_data_percent = 80
+validation_data_percent = 10
+
+# Please enter 0 if you want to "randomly" split the data in estimation and validation/test
+random_sampling = 0
+
+# Tree parameter
+# PLEASE ENTER THE Tree (CART) complexity control cp (e.g. 0.001 to 0.02, depending on the data)
+CART_cp = 0.01
+
+# Please enter the minimum size of a segment for the analysis to be done only for that segment
+min_segment = 50
+
+# Please enter the maximum number of observations to show in the report and slides 
+# (DEFAULT is 50. If the number is large the report and slides may not be generated - very slow or will crash!!)
+max_data_report = 5 # can also chance in server.R
+
+datafile_name= "data/SpeedDating_segmented_1.csv"
+
+Probability_Threshold = Probability_Threshold/100 # make it between 0 and 1
+
+ProjectData <- read.delim(file = datafile_name, sep = ",")
+
+ProjectData <- data.matrix(ProjectData[,]) 
+# (female - 0; male - 1; 2 - all)
+gender <- 2 # ie. 0 means that males make a decision; 1 means that females make a decision
+
+# rmarkdown::render("SpeedDatingClassification_all.Rmd")
+
+if (gender == 0 || gender == 1) {
+  ProjectData <- ProjectData[which(ProjectData[,1]==gender),]
+}
+
+# remove rows with empty cells
+ProjectData <- ProjectData[rowSums(is.na(ProjectData)) == 0,]
+ProjectData <- ProjectData[,-1]
+
+ProjectData_INITIAL <- ProjectData
+
+# if (datafile_name == "Boats")
+#   colnames(ProjectData)<-gsub("\\."," ",colnames(ProjectData))
+
+dependent_variable = unique(sapply(dependent_variable,function(i) min(ncol(ProjectData), max(i,1))))
+independent_variables = unique(sapply(independent_variables,function(i) min(ncol(ProjectData), max(i,1))))
+
+if (length(unique(ProjectData[,dependent_variable])) !=2){
+  cat("\n*****\n BE CAREFUL, THE DEPENDENT VARIABLE TAKES MORE THAN 2 VALUES...")
+  cat("\nSplitting it around its median...\n*****\n ")
+  new_dependent = ProjectData[,dependent_variable] >= median(ProjectData[,dependent_variable])
+  ProjectData[,dependent_variable] <- 1*new_dependent
+}
+
+Profit_Matrix = matrix(c(actual_1_predict_1, actual_0_predict_1, actual_1_predict_0, actual_0_predict_0), ncol=2)
+colnames(Profit_Matrix)<- c("Predict 1", "Predict 0")
+rownames(Profit_Matrix) <- c("Actual 1", "Actual 0")
+test_data_percent = 100-estimation_data_percent-validation_data_percent
+CART_control = rpart.control(cp = CART_cp)
+
+```
+
+# Classification using speed dating dataset
+
+## The "Business Decision"
+
+We would like to understand who would be the most likely champion of speed dating as well as what would be the **key drivers** that affect people's decision in selecting. 
+
+## The Data
+
+We used the data from speed dating experiment conducted at Columbia Business School <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment">available on kaggle</a> 
+This is how the first `r min(max_data_report, nrow(ProjectData))` out of the total of `r nrow(ProjectData)` rows look:
+
+```{r echo=FALSE, message=FALSE, prompt=FALSE, results='asis'}
+# let's make the data into data.matrix classes so that we can easier visualize them
+ProjectData = data.matrix(ProjectData)
+
+knitr::kable({
+  df <- t(head(round(ProjectData[,independent_variables],2), max_data_report))
+  colnames(df) <- sprintf("%02d", 1:ncol(df))
+  df
+})
+```
+
+## A Process for Classification
+
+# Classification in 6 steps
+
+> We followed the following approach to proceed with classification (as explained in class)
+
+1. Create an estimation sample and two validation samples by splitting the data into three groups. Steps 2-5 below will then be performed only on the estimation and the first validation data. You should only do step 6 once on the second validation data, also called **test data**, and report/use the performance on that (second validation) data only to make final business decisions. 
+2.  Set up the dependent variable (as a categorical 0-1 variable; multi-class classification is also feasible, and similar, but we do not explore it in this note). 
+3. Make a preliminary assessment of the relative importance of the explanatory variables using visualization tools and simple descriptive statistics. 
+4.  Estimate the classification model using the estimation data, and interpret the results.
+5. Assess the accuracy of classification in the first validation sample, possibly repeating steps 2-5 a few times in different ways to increase performance.
+6. Finally, assess the accuracy of classification in the second validation sample.  You should eventually use/report all relevant performance measures/plots on this second validation sample only.
+
+Let's follow these steps.
+
+## Step 1: Split the data 
+
+```{r}
+if (random_sampling){
+  estimation_data_ids=sample.int(nrow(ProjectData),floor(estimation_data_percent*nrow(ProjectData)/100))
+  non_estimation_data = setdiff(1:nrow(ProjectData),estimation_data_ids)
+  validation_data_ids=non_estimation_data[sample.int(length(non_estimation_data), floor(validation_data_percent/(validation_data_percent+test_data_percent)*length(non_estimation_data)))]
+  } else {
+    estimation_data_ids=1:floor(estimation_data_percent*nrow(ProjectData)/100)
+    non_estimation_data = setdiff(1:nrow(ProjectData),estimation_data_ids)
+    validation_data_ids = (tail(estimation_data_ids,1)+1):(tail(estimation_data_ids,1) + floor(validation_data_percent/(validation_data_percent+test_data_percent)*length(non_estimation_data)))
+    }
+
+test_data_ids = setdiff(1:nrow(ProjectData), union(estimation_data_ids,validation_data_ids))
+
+estimation_data=ProjectData[estimation_data_ids,]
+validation_data=ProjectData[validation_data_ids,]
+test_data=ProjectData[test_data_ids,]
+```
+
+We have three data samples: **estimation_data** (e.g. `r estimation_data_percent`% of the data in our case),  **validation_data**  (e.g. the `r validation_data_percent`% of the data) and **test_data** (e.g. the remaining `r 100 - estimation_data_percent  -  validation_data_percent`% of the data).
+
+In our case we use `r nrow(estimation_data)` observations in the estimation data, 
+`r nrow(validation_data)` in the validation data, and `r nrow(test_data)` in the test data. 
+
+## Step 2: Choose dependent variable
+
+Our dependent variable is: `r colnames(ProjectData)[dependent_variable]`. It states whether given subject was selected by the partner. In our data the number of 0/1's in our estimation sample is as follows.
+
+```{r}
+class_percentages=matrix(c(sum(estimation_data[,dependent_variable]==1),sum(estimation_data[,dependent_variable]==0)), nrow=1); colnames(class_percentages)<-c("Class 1", "Class 0")
+rownames(class_percentages)<-"# of Observations"
+knitr::kable(class_percentages)
+```
+
+while in the validation sample they are:
+
+```{r}
+class_percentages=matrix(c(sum(validation_data[,dependent_variable]==1),sum(validation_data[,dependent_variable]==0)), nrow=1); colnames(class_percentages)<-c("Class 1", "Class 0")
+rownames(class_percentages)<-"# of Observations"
+knitr::kable(class_percentages)
+```
+
+## Step 3: Simple Analysis
+
+Below are the statistics of our independent variables across the two classes, class 1, "selected"
+
+```{r}
+knitr::kable(round(my_summary(estimation_data[estimation_data[,dependent_variable]==1,independent_variables]),2))
+```
+
+and class 0, "not selected":
+
+```{r}
+knitr::kable(round(my_summary(estimation_data[estimation_data[,dependent_variable]==0,independent_variables]),2))
+```
+
+A simple visualization of values is presented below using the **box plots**. These visually indicate simple summary statistics of an independent variable (e.g. mean, median, top and bottom quantiles, min, max, etc). For example, for class 0
+
+```{r, fig.height=4.5}
+DVvalues = unique(estimation_data[,dependent_variable])
+x0 = estimation_data[which(estimation_data[,dependent_variable]==DVvalues[1]),independent_variables]
+x1 = estimation_data[which(estimation_data[,dependent_variable]==DVvalues[2]),independent_variables]
+colnames(x0) <- 1:ncol(x0)
+colnames(x1) <- 1:ncol(x1)
+
+swatch.default <- as.character(swatch())
+set_swatch(c(swatch.default[1], colorRampPalette(RColorBrewer::brewer.pal(12, "Paired"))(ncol(x0))))
+ggplot(melt(cbind.data.frame(n=1:nrow(x0), x0), id="n"), aes(x=n, y=value, colour=variable)) + geom_boxplot(fill="#FFFFFF", size=0.66, position=position_dodge(1.1*nrow(x0)))
+set_swatch(swatch.default)
+```
+
+and class 1:
+
+```{r, fig.height=4.5}
+swatch.default <- as.character(swatch())
+set_swatch(c(swatch.default[1], colorRampPalette(RColorBrewer::brewer.pal(12, "Paired"))(ncol(x1))))
+ggplot(melt(cbind.data.frame(n=1:nrow(x1), x1), id="n"), aes(x=n, y=value, colour=variable)) + geom_boxplot(fill="#FFFFFF", size=0.66, position=position_dodge(1.1*nrow(x1)))
+set_swatch(swatch.default)
+```
+
+## Step 4: Classification and Interpretation
+
+For our assignent, we used three classification methods: **logistic regression**, **classification and regression trees (CART)** and **machine learning (i.e. random forests)**.
+
+Running a basic CART model with complexity control cp=`r CART_cp`, leads to the following tree:
+
+```{r}
+# just name the variables numerically so that they look ok on the tree plots
+
+independent_variables_nolabel = paste("IV", 1:length(independent_variables), sep="")
+
+estimation_data_nolabel = cbind(estimation_data[,dependent_variable], estimation_data[,independent_variables])
+colnames(estimation_data_nolabel)<- c(colnames(estimation_data)[dependent_variable],independent_variables_nolabel)
+
+validation_data_nolabel = cbind(validation_data[,dependent_variable], validation_data[,independent_variables])
+colnames(validation_data_nolabel)<- c(dependent_variable,independent_variables_nolabel)
+
+test_data_nolabel = cbind(test_data[,dependent_variable], test_data[,independent_variables])
+colnames(test_data_nolabel)<- c(dependent_variable,independent_variables_nolabel)
+
+estimation_data_nolabel = data.frame(estimation_data_nolabel)
+validation_data_nolabel = data.frame(validation_data_nolabel)
+test_data_nolabel = data.frame(test_data_nolabel)
+
+estimation_data = data.frame(estimation_data)
+validation_data = data.frame(validation_data)
+test_data = data.frame(test_data)
+
+formula=paste(colnames(estimation_data)[dependent_variable],paste(Reduce(paste,sapply(head(independent_variables_nolabel,-1), function(i) paste(i,"+",sep=""))),tail(independent_variables_nolabel,1),sep=""),sep="~")
+
+CART_tree<-rpart(formula, data= estimation_data_nolabel,method="class", control=CART_control)
+
+rpart.plot(CART_tree, box.palette="OrBu", type=3, extra=1, fallen.leaves=F, branch.lty=3)
+
+labels = colnames(ProjectData)[c(independent_variables)]
+
+```
+
+Where the key decisions criteria could be explained by the following table.
+
+```{r}
+y <- matrix(nrow = length(names(CART_tree$variable.importance)), ncol = 2)
+i <- 0
+for (x in names(CART_tree$variable.importance)) {
+    i <- i + 1 
+    y[i,1] <- x
+    y[i,2] <- labels[as.numeric(gsub("\\IV"," ", x))]
+}
+
+colnames(y) <- c("Attribute", "Name")
+
+knitr::kable(y)
+```
+
+For example, this is how the tree would look like if we set `cp = 0.005`:
+
+```{r}
+CART_tree_large<-rpart(formula, data= estimation_data_nolabel,method="class", control=rpart.control(cp = 0.005))
+rpart.plot(CART_tree_large, box.palette="OrBu", type=3, extra=1, fallen.leaves=F, branch.lty=3)
+
+labels = colnames(ProjectData)[c(independent_variables)]
+
+y <- matrix(nrow = length(names(CART_tree_large$variable.importance)), ncol = 2)
+i <- 0
+for (x in names(CART_tree_large$variable.importance)) {
+    i <- i + 1 
+    y[i,1] <- x
+    y[i,2] <- labels[as.numeric(gsub("\\IV"," ", x))]
+}
+
+colnames(y) <- c("Attribute", "Name")
+
+knitr::kable(y)
+
+```
+
+Below we present the probability our validation data belong to class 1. For the first few validation data observations, using the first CART above, is:
+
+```{r}
+# Let's first calculate all probabilites for the estimation, validation, and test data
+estimation_Probability_class1_tree<-predict(CART_tree, estimation_data_nolabel)[,2]
+estimation_Probability_class1_tree_large<-predict(CART_tree_large, estimation_data_nolabel)[,2]
+
+validation_Probability_class1_tree<-predict(CART_tree, validation_data_nolabel)[,2]
+validation_Probability_class1_tree_large<-predict(CART_tree_large, validation_data_nolabel)[,2]
+
+test_Probability_class1_tree<-predict(CART_tree, test_data_nolabel)[,2]
+test_Probability_class1_tree_large<-predict(CART_tree_large, test_data_nolabel)[,2]
+
+estimation_prediction_class_tree=1*as.vector(estimation_Probability_class1_tree > Probability_Threshold)
+estimation_prediction_class_tree_large=1*as.vector(estimation_Probability_class1_tree_large > Probability_Threshold)
+
+validation_prediction_class_tree=1*as.vector(validation_Probability_class1_tree > Probability_Threshold)
+validation_prediction_class_tree_large=1*as.vector(validation_Probability_class1_tree_large > Probability_Threshold)
+
+test_prediction_class_tree=1*as.vector(test_Probability_class1_tree > Probability_Threshold)
+test_prediction_class_tree_large=1*as.vector(test_Probability_class1_tree_large > Probability_Threshold)
+
+Classification_Table=rbind(validation_data[,dependent_variable],validation_Probability_class1_tree)
+rownames(Classification_Table)<-c("Actual Class","Probability of Class 1")
+colnames(Classification_Table)<- paste("Obs", 1:ncol(Classification_Table), sep=" ")
+
+Classification_Table_large=rbind(validation_data[,dependent_variable],validation_Probability_class1_tree)
+rownames(Classification_Table_large)<-c("Actual Class","Probability of Class 1")
+colnames(Classification_Table_large)<- paste("Obs", 1:ncol(Classification_Table_large), sep=" ")
+
+knitr::kable(head(t(round(Classification_Table,2)), max_data_report))
+```
+
+**Logistic Regression** is a method similar to linear regression except that the dependent variable can be discrete (e.g. 0 or 1). **Linear** logistic regression estimates the coefficients of a linear model using the selected independent variables while optimizing a classification criterion. For example, this is the logistic regression parameters for our data:
+
+```{r}
+formula_log=paste(colnames(estimation_data[,dependent_variable,drop=F]),paste(Reduce(paste,sapply(head(independent_variables,-1), function(i) paste(colnames(estimation_data)[i],"+",sep=""))),colnames(estimation_data)[tail(independent_variables,1)],sep=""),sep="~")
+
+logreg_solution <- glm(formula_log, family=binomial(link="logit"),  data=estimation_data)
+log_coefficients <- round(summary(logreg_solution)$coefficients,1)
+
+knitr::kable(round(log_coefficients,2))
+```
+
+**Random forests** is the last method that we used. Below is the overview of key success factors when it comes to speed dating decision making.
+
+```{r}
+cols <- colnames(ProjectData)
+selected <- cols[c(dependent_variable, independent_variables)]
+forestFit <- randomForest(as.factor(dec_o) ~ ., data=estimation_data[, selected], importance=TRUE)
+
+varImpPlot(forestFit)
+
+estimation_prediction_random_forests <- predict(forestFit, estimation_data[,independent_variables])
+validation_prediction_random_forests <- predict(forestFit, validation_data[, independent_variables])
+test_prediction_random_forests <- predict(forestFit, test_data[, independent_variables])
+
+validation_Probability_random_forests <- predict(forestFit, validation_data[, independent_variables], type = "prob")[,2]
+
+test_Probability_random_forests <- predict(forestFit, test_data[, independent_variables], type = "prob")[,2]
+
+```
+
+Beloow table shows us **key drivers** of the classification according to each of the used methods. 
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE, results='asis'}
+log_importance = tail(log_coefficients[,"z value", drop=F],-1) # remove the intercept
+log_importance = log_importance/max(abs(log_importance))
+
+tree_importance = CART_tree$variable.importance
+tree_ordered_drivers = as.numeric(gsub("\\IV"," ",names(CART_tree$variable.importance)))
+
+tree_importance_final = rep(0,length(independent_variables))
+tree_importance_final[tree_ordered_drivers] <- tree_importance
+tree_importance_final <- tree_importance_final/max(abs(tree_importance_final))
+
+tree_importance_final <- tree_importance_final*sign(log_importance)
+
+large_tree_importance = CART_tree_large$variable.importance
+large_tree_ordered_drivers = as.numeric(gsub("\\IV"," ",names(CART_tree_large$variable.importance)))
+large_tree_importance_final = rep(0,length(independent_variables))
+large_tree_importance_final[large_tree_ordered_drivers] <- large_tree_importance
+large_tree_importance_final <- large_tree_importance_final/max(abs(large_tree_importance_final))
+large_tree_importance_final <- large_tree_importance_final*sign(log_importance)
+
+forests_importance <- importance(forestFit, type=1)
+forests_importance <- forests_importance/max(abs(forests_importance))
+
+Importance_table <- cbind(tree_importance_final,large_tree_importance_final, log_importance, forests_importance)
+colnames(Importance_table) <- c("CART 1", "CART 2", "Logistic Regr.", "Random Forests - mean decrease in accuracy")
+rownames(Importance_table) <- rownames(log_importance)
+## printing the result in a clean-slate table
+knitr::kable(round(Importance_table,2))
+```
+
+In general we do not see very significant differences across all used methods which makes sense.
+
+## Step 5: Validation accuracy 
+
+```{r}
+# Let's get the probabilities for the 3 types of data again
+estimation_Probability_class1_log<-predict(logreg_solution, type="response", newdata=estimation_data[,independent_variables])
+validation_Probability_class1_log<-predict(logreg_solution, type="response", newdata=validation_data[,independent_variables])
+test_Probability_class1_log<-predict(logreg_solution, type="response", newdata=test_data[,independent_variables])
+
+estimation_prediction_class_log=1*as.vector(estimation_Probability_class1_log > Probability_Threshold)
+validation_prediction_class_log=1*as.vector(validation_Probability_class1_log > Probability_Threshold)
+test_prediction_class_log=1*as.vector(test_Probability_class1_log > Probability_Threshold)
+
+Classification_Table=rbind(validation_data[,dependent_variable],validation_Probability_class1_log)
+rownames(Classification_Table)<-c("Actual Class","Probability of Class 1")
+colnames(Classification_Table)<- paste("Obs", 1:ncol(Classification_Table), sep=" ")
+
+#knitr::kable(head(t(round(Classification_Table,2)), max_data_report))
+```
+
+### 1.  Hit ratio
+
+Below is the percentage of the observations that have been correctly classified (the predicted is the same as the actual class), i.e. exceeded the probability threshold  `r Probability_Threshold*100`% for the validation data:
+
+```{r}
+validation_actual=validation_data[,dependent_variable]
+validation_predictions = rbind(validation_prediction_class_tree,
+                               validation_prediction_class_tree_large,
+                               validation_prediction_class_log,
+                               validation_prediction_random_forests)
+validation_hit_rates = rbind(
+  100*sum(validation_prediction_class_tree==validation_actual)/length(validation_actual), 
+  100*sum(validation_prediction_class_tree_large==validation_actual)/length(validation_actual), 
+  100*sum(validation_prediction_class_log==validation_actual)/length(validation_actual),
+  100*sum(validation_prediction_random_forests==validation_actual)/length(validation_actual)
+  )
+colnames(validation_hit_rates) <- "Hit Ratio"
+rownames(validation_hit_rates) <- c("First CART", "Second CART", "Logistic Regression", "Random Forests")
+knitr::kable(validation_hit_rates)
+```
+
+while for the estimation data the hit rates are:
+```{r}
+estimation_actual=estimation_data[,dependent_variable]
+estimation_predictions = rbind(estimation_prediction_class_tree,
+                               estimation_prediction_class_tree_large,
+                               estimation_prediction_class_log,
+                               estimation_prediction_random_forests)
+estimation_hit_rates = rbind(
+  100*sum(estimation_prediction_class_tree==estimation_actual)/length(estimation_actual), 
+  100*sum(estimation_prediction_class_tree_large==estimation_actual)/length(estimation_actual), 
+  100*sum(estimation_prediction_class_log==estimation_actual)/length(estimation_actual),
+  100*sum(estimation_prediction_random_forests==estimation_actual)/length(estimation_actual)
+  )
+colnames(estimation_hit_rates) <- "Hit Ratio"
+rownames(estimation_hit_rates) <- c("First CART", "Second CART", "Logistic Regression", "Random Forests")
+knitr::kable(estimation_hit_rates)
+```
+
+A simple benchmark to compare the performance of a classification model against is the **Maximum Chance Criterion**. This measures the proportion of the class with the largest size. For our validation data the largest group is people who do not intent do purchase a boat: `r sum(!validation_actual)` out of `r length(validation_actual)` people). Clearly without doing any discriminant analysis, if we classified all individuals into the largest group,  we could get a hit-rate of `r round(100*sum(!validation_actual)/length(validation_actual), 2)`% - without doing any work. 
+
+In our case this particular criterion is met for all the methods that were used.
+
+### 2. Confusion matrix
+
+The confusion matrix shows for each class the number (or percentage) of the  data that are correctly classified for that class. For example for the method above with the highest hit rate in the validation data (among logistic regression, 2 CART models and random forests), the confusion matrix for the validation data is:
+
+```{r}
+validation_prediction_best = validation_predictions[which.max(validation_hit_rates),]
+conf_matrix = matrix(rep(0,4),ncol=2)
+conf_matrix[1,1]<- 100*sum(validation_prediction_best*validation_data[,dependent_variable])/sum(validation_data[,dependent_variable])
+conf_matrix[1,2]<- 100*sum((!validation_prediction_best)*validation_data[,dependent_variable])/sum(validation_data[,dependent_variable])
+conf_matrix[2,1]<- 100*sum((!validation_prediction_best)*(!validation_data[,dependent_variable]))/sum((!validation_data[,dependent_variable]))
+conf_matrix[2,2]<- 100*sum((validation_prediction_best)*(!validation_data[,dependent_variable]))/sum((!validation_data[,dependent_variable]))
+conf_matrix = round(conf_matrix,2)
+
+colnames(conf_matrix) <- c("Predicted 1", "Predicted 0")
+rownames(conf_matrix) <- c("Actual 1", "Actual 0")
+knitr::kable(conf_matrix)
+```
+
+### 3. ROC curve
+
+The ROC curves for the validation data for all four methods is below:
+
+```{r}
+validation_actual_class <- as.numeric(validation_data[,dependent_variable])
+
+pred_tree <- prediction(validation_Probability_class1_tree, validation_actual_class)
+pred_tree_large <- prediction(validation_Probability_class1_tree_large, validation_actual_class)
+pred_log <- prediction(validation_Probability_class1_log, validation_actual_class)
+pred_rand <- prediction(validation_Probability_random_forests, validation_actual_class)
+
+test1<-performance(pred_tree, "tpr", "fpr")
+df1<- cbind(as.data.frame(test1@x.values),as.data.frame(test1@y.values))
+colnames(df1) <- c("False Positive rate CART 1", "True Positive CART 1")
+
+test2<-performance(pred_log, "tpr", "fpr")
+df2<- cbind(as.data.frame(test2@x.values),as.data.frame(test2@y.values))
+colnames(df2) <- c("False Positive rate log reg", "True Positive log reg")
+
+test3<-performance(pred_tree_large, "tpr", "fpr")
+df3<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@y.values))
+colnames(df3) <- c("False Positive rate CART 2", "True Positive CART 2")
+
+df4<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@x.values))
+colnames(df4) <- c("False Positive rate y=x", "True Positive y=x")
+
+test5<-performance(pred_rand, "tpr", "fpr")
+df5<- cbind(as.data.frame(test5@x.values),as.data.frame(test5@y.values))
+colnames(df5) <- c("False Positive rate rand forests", "True Positive rand forests")
+
+df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4, df5), function(df) {
+  df <- melt(df, id=1)
+  df$variable <- sub("True Positive ", "", df$variable)
+  colnames(df)[1] <- "False Positive rate"
+  df
+}))
+ggplot(df.all, aes(x=`False Positive rate`, y=value, colour=variable)) + geom_line() + ylab("True Positive rate")
+```
+
+### 4. Lift curve
+
+The Lift curves for the validation data for our four classifiers are the following:
+
+```{r}
+validation_actual <- validation_data[,dependent_variable]
+all1s <- sum(validation_actual); 
+
+probs <- validation_Probability_class1_tree
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(validation_actual), sum(validation_actual[useonly])/all1s) 
+}))
+frame1 <- data.frame(
+  `CART 1 % of validation data` = res[1,],
+  `CART 1 % of class 1` = res[2,],
+  check.names = FALSE
+)
+plot1 <- ggplot(frame1, aes(x=`CART 1 % of validation data`, y=`CART 1 % of class 1`)) + geom_line()
+
+probs <- validation_Probability_class1_tree_large
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(validation_actual), sum(validation_actual[useonly])/all1s) 
+}))
+frame2 <- data.frame(
+  `CART 2 % of validation data` = res[1,],
+  `CART 2 % of class 1` = res[2,],
+  check.names = FALSE
+)
+plot2 <- ggplot(frame2, aes(x=`CART 2 % of validation data`, y=`CART 2 % of class 1`)) + geom_line()
+
+probs <- validation_Probability_class1_log
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= prob)
+  c(length(useonly)/length(validation_actual), sum(validation_actual[useonly])/all1s) 
+}))
+frame3 <- data.frame(
+  `log reg % of validation data` = res[1,],
+  `log reg % of class 1` = res[2,],
+  check.names = FALSE
+)
+plot3 <- ggplot(frame3, aes(x=`y=x % of validation data`, y=`y=x % of class 1`)) + geom_line()
+
+frame4 <- data.frame(
+  `y=x % of validation data` = res[1,],
+  `y=x % of class 1` = res[1,],
+  check.names = FALSE
+)
+
+probs <- validation_Probability_random_forests
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= prob)
+  c(length(useonly)/length(validation_actual), sum(validation_actual[useonly])/all1s) 
+}))
+frame5 <- data.frame(
+  `rand forests % of validation data` = res[1,],
+  `rand forests % of class 1` = res[2,],
+  check.names = FALSE
+)
+
+# we can plot the curves individually here, but we're going to combine them below, instead
+# grid.arrange(plot1, plot2, plot3)   # use `fig.height=7.5` for the grid plot
+
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4, frame5), function(df) {
+  df <- melt(df, id=1)
+  df$variable <- sub(" % of class 1", "", df$variable)
+  colnames(df)[1] <- "Percent of validation data"
+  df
+}))
+ggplot(df.all, aes(x=`Percent of validation data`, y=value, colour=variable)) + geom_line() + ylab("Percent of class 1")
+```
+
+## Step 6: Test Accuracy
+
+Below are presented hit ratios for all four methods based on test dataset:
+
+```{r}
+######for train data#####
+test_actual=test_data[,dependent_variable]
+test_predictions = rbind(test_prediction_class_tree,
+                         test_prediction_class_tree_large,
+                         test_prediction_class_log,
+                         test_prediction_random_forests)
+
+test_hit_rates = rbind(
+  100*sum(test_prediction_class_tree==test_actual)/length(test_actual), 
+  100*sum(test_prediction_class_tree_large==test_actual)/length(test_actual), 
+  100*sum(test_prediction_class_log==test_actual)/length(test_actual),
+  100*sum(test_prediction_random_forests==test_actual)/length(test_actual)
+  )
+colnames(test_hit_rates) <- "Hit Ratio"
+rownames(test_hit_rates) <- c("First CART", "Second CART", "Logistic Regression", "Random Forests")
+
+knitr::kable(test_hit_rates)
+```
+
+The Confusion Matrix for the model with the best validation data hit ratio above:
+
+```{r echo=FALSE, message=FALSE, prompt=FALSE, results='asis'}
+test_prediction_best = test_predictions[which.max(validation_hit_rates),]
+conf_matrix = matrix(rep(0,4),ncol=2)
+conf_matrix[1,1]<- 100*sum(test_prediction_best*test_data[,dependent_variable])/sum(test_data[,dependent_variable])
+conf_matrix[1,2]<- 100*sum((!test_prediction_best)*test_data[,dependent_variable])/sum(test_data[,dependent_variable])
+conf_matrix[2,1]<- 100*sum((!test_prediction_best)*(!test_data[,dependent_variable]))/sum((!test_data[,dependent_variable]))
+conf_matrix[2,2]<- 100*sum((test_prediction_best)*(!test_data[,dependent_variable]))/sum((!test_data[,dependent_variable]))
+conf_matrix = round(conf_matrix,0)
+
+colnames(conf_matrix) <- c("Predicted 1", "Predicted 0")
+rownames(conf_matrix) <- c("Actual 1", "Actual 0")
+knitr::kable(conf_matrix)
+```
+
+ROC curves for the test data:
+
+```{r}
+test_actual_class <- as.numeric(test_data[,dependent_variable])
+
+pred_tree_test <- prediction(test_Probability_class1_tree, test_actual_class)
+pred_tree_large_test <- prediction(test_Probability_class1_tree_large, test_actual_class)
+pred_log_test <- prediction(test_Probability_class1_log, test_actual_class)
+pred_rand_test <- prediction(test_Probability_random_forests, test_actual_class)
+
+test<-performance(pred_tree_test, "tpr", "fpr")
+df1<- cbind(as.data.frame(test@x.values),as.data.frame(test@y.values))
+colnames(df1) <- c("False Positive rate CART 1", "True Positive CART 1")
+
+test2<-performance(pred_tree_large_test, "tpr", "fpr")
+df2<- cbind(as.data.frame(test2@x.values),as.data.frame(test2@y.values))
+colnames(df2) <- c("False Positive rate CART 2", "True Positive CART 2")
+
+test3<-performance(pred_log_test, "tpr", "fpr")
+df3<- cbind(as.data.frame(test1@x.values),as.data.frame(test1@y.values))
+colnames(df3) <- c("False Positive rate log reg", "True Positive log reg")
+
+df4<- cbind(as.data.frame(test3@x.values),as.data.frame(test3@x.values))
+colnames(df4) <- c("False Positive rate y=x", "True Positive y=x")
+
+test5<-performance(pred_rand_test, "tpr", "fpr")
+df5<- cbind(as.data.frame(test5@x.values),as.data.frame(test5@y.values))
+colnames(df5) <- c("False Positive rate rand forests", "True Positive rand forests")
+
+df.all <- do.call(rbind, lapply(list(df1, df2, df3, df4, df5), function(df) {
+  df <- melt(df, id=1)
+  df$variable <- sub("True Positive ", "", df$variable)
+  colnames(df)[1] <- "False Positive rate"
+  df
+}))
+ggplot(df.all, aes(x=`False Positive rate`, y=value, colour=variable)) + geom_line() + ylab("True Positive rate")
+```
+
+Lift Curves for the test data:
+
+```{r}
+test_actual <- test_data[,dependent_variable]
+all1s <- sum(test_actual)
+
+probs <- test_Probability_class1_tree
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(test_actual), sum(test_actual[useonly])/all1s) 
+}))
+frame1 <- data.frame(
+  `CART 1 % of validation data` = res[1,],
+  `CART 1 % of class 1` = res[2,],
+  check.names = FALSE
+)
+
+probs <- test_Probability_class1_tree_large
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(test_actual), sum(test_actual[useonly])/all1s) 
+}))
+frame2 <- data.frame(
+  `CART 2 % of validation data` = res[1,],
+  `CART 2 % of class 1` = res[2,],
+  check.names = FALSE
+)
+
+probs <- test_Probability_class1_log
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(test_actual), sum(test_actual[useonly])/all1s) 
+  }))
+frame3 <- data.frame(
+  `log reg % of validation data` = res[1,],
+  `log reg % of class 1` = res[2,],
+  check.names = FALSE
+)
+
+frame4 <- data.frame(
+  `y=x % of validation data` = res[1,],
+  `y=x % of class 1` = res[1,],
+  check.names = FALSE
+)
+
+probs <- test_Probability_random_forests
+xaxis <- sort(unique(c(0,1,probs)), decreasing = TRUE)
+res <- 100*Reduce(cbind,lapply(xaxis, function(prob){
+  useonly <- which(probs >= 1-prob)
+  c(length(useonly)/length(test_actual), sum(test_actual[useonly])/all1s) 
+  }))
+frame5 <- data.frame(
+  `rand forests % of validation data` = res[1,],
+  `rand forests % of class 1` = res[2,],
+  check.names = FALSE
+)
+
+df.all <- do.call(rbind, lapply(list(frame1, frame2, frame3, frame4, frame5), function(df) {
+  df <- melt(df, id=1)
+  df$variable <- sub(" % of class 1", "", df$variable)
+  colnames(df)[1] <- "Percent of test data"
+  df
+}))
+ggplot(df.all, aes(x=`Percent of test data`, y=value, colour=variable)) + geom_line() + ylab("Percent of class 1")
+```

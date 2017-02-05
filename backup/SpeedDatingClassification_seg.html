@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SpeedDating - prediciting success in speed dating</title>
+  <meta charset="utf-8">
+  <meta name="description" content="SpeedDating - prediciting success in speed dating">
+  <meta name="author" content="T. Evgeniou; adapted by team">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="http://slidifylibraries2.googlecode.com/git/inst/libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/js/slides" 
+    src="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>SpeedDating - prediciting success in speed dating</h1>
+    <h2></h2>
+    <p>T. Evgeniou; adapted by team<br/></p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <article data-timings="">
+    <pre><code>## Warning in file(filename, &quot;r&quot;, encoding = encoding): cannot open file &#39;./
+## lib/library.R&#39;: No such file or directory
+</code></pre>
+
+<pre><code>## Error in file(filename, &quot;r&quot;, encoding = encoding): cannot open the connection
+</code></pre>
+
+<pre><code>## Warning in file(filename, &quot;r&quot;, encoding = encoding): cannot open file &#39;./
+## lib/heatmapOutput.R&#39;: No such file or directory
+</code></pre>
+
+<pre><code>## Error in file(filename, &quot;r&quot;, encoding = encoding): cannot open the connection
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggthemr&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;rpart.control&quot;
+</code></pre>
+
+<h1>Classification using speed dating dataset</h1>
+
+<h2>The &quot;Business Decision&quot;</h2>
+
+<p>We would like to understand who would be the most likely champion of speed dating as well as what would be the <strong>key drivers</strong> that affect people&#39;s decision in selecting. </p>
+
+<h2>The Data</h2>
+
+<p>We used the data from speed dating experiment conducted at Columbia Business School <a href="https://www.kaggle.com/annavictoria/speed-dating-experiment">available on kaggle</a> 
+This is how the first 5 out of the total of 1354 rows look:</p>
+
+<table><thead>
+<tr>
+<th align="left"></th>
+<th align="right">01</th>
+<th align="right">02</th>
+<th align="right">03</th>
+<th align="right">04</th>
+<th align="right">05</th>
+</tr>
+</thead><tbody>
+<tr>
+<td align="left">attr_o</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">7</td>
+<td align="right">8</td>
+<td align="right">6</td>
+</tr>
+<tr>
+<td align="left">sinc_o</td>
+<td align="right">7</td>
+<td align="right">5</td>
+<td align="right">7</td>
+<td align="right">8</td>
+<td align="right">6</td>
+</tr>
+<tr>
+<td align="left">intel_o</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="right">7</td>
+<td align="right">9</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">fun_o</td>
+<td align="right">7</td>
+<td align="right">6</td>
+<td align="right">9</td>
+<td align="right">8</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">amb_o</td>
+<td align="right">7</td>
+<td align="right">6</td>
+<td align="right">9</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td align="left">shar_o</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">9</td>
+<td align="right">9</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">field_cd</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">race</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td align="left">goal</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">date</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">go_out</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">career_c</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">sports</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">tvsports</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">exercise</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">6</td>
+</tr>
+<tr>
+<td align="left">dining</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">museums</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">6</td>
+<td align="right">6</td>
+</tr>
+<tr>
+<td align="left">art</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">hiking</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">gaming</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">clubbing</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">reading</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">tv</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">theater</td>
+<td align="right">9</td>
+<td align="right">9</td>
+<td align="right">9</td>
+<td align="right">9</td>
+<td align="right">9</td>
+</tr>
+<tr>
+<td align="left">movies</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">concerts</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td align="left">music</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">7</td>
+</tr>
+<tr>
+<td align="left">shopping</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="left">yoga</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+</tbody></table>
+
+<h2>A Process for Classification</h2>
+
+<h1>Classification in 6 steps</h1>
+
+<blockquote>
+<p>We followed the following approach to proceed with classification (as explained in class)</p>
+</blockquote>
+
+<ol>
+<li>Create an estimation sample and two validation samples by splitting the data into three groups. Steps 2-5 below will then be performed only on the estimation and the first validation data. You should only do step 6 once on the second validation data, also called <strong>test data</strong>, and report/use the performance on that (second validation) data only to make final business decisions. </li>
+<li> Set up the dependent variable (as a categorical 0-1 variable; multi-class classification is also feasible, and similar, but we do not explore it in this note). </li>
+<li>Make a preliminary assessment of the relative importance of the explanatory variables using visualization tools and simple descriptive statistics. </li>
+<li> Estimate the classification model using the estimation data, and interpret the results.</li>
+<li>Assess the accuracy of classification in the first validation sample, possibly repeating steps 2-5 a few times in different ways to increase performance.</li>
+<li>Finally, assess the accuracy of classification in the second validation sample.  You should eventually use/report all relevant performance measures/plots on this second validation sample only.</li>
+</ol>
+
+<p>Let&#39;s follow these steps.</p>
+
+<h2>Step 1: Split the data</h2>
+
+<p>We have three data samples: <strong>estimation_data</strong> (e.g. 80% of the data in our case),  <strong>validation_data</strong>  (e.g. the 10% of the data) and <strong>test_data</strong> (e.g. the remaining 10% of the data).</p>
+
+<p>In our case we use 1083 observations in the estimation data, 
+135 in the validation data, and 136 in the test data. </p>
+
+<h2>Step 2: Choose dependent variable</h2>
+
+<p>Our dependent variable is: dec_o. It states whether given subject was selected by the partner. In our data the number of 0/1&#39;s in our estimation sample is as follows.</p>
+
+<table><thead>
+<tr>
+<th align="left"></th>
+<th align="right">Class 1</th>
+<th align="right">Class 0</th>
+</tr>
+</thead><tbody>
+<tr>
+<td align="left"># of Observations</td>
+<td align="right">554</td>
+<td align="right">529</td>
+</tr>
+</tbody></table>
+
+<p>while in the validation sample they are:</p>
+
+<table><thead>
+<tr>
+<th align="left"></th>
+<th align="right">Class 1</th>
+<th align="right">Class 0</th>
+</tr>
+</thead><tbody>
+<tr>
+<td align="left"># of Observations</td>
+<td align="right">74</td>
+<td align="right">61</td>
+</tr>
+</tbody></table>
+
+<h2>Step 3: Simple Analysis</h2>
+
+<p>Below are the statistics of our independent variables across the two classes, class 1, &quot;selected&quot;</p>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): could not find function &quot;my_summary&quot;
+</code></pre>
+
+<p>and class 0, &quot;not selected&quot;:</p>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): could not find function &quot;my_summary&quot;
+</code></pre>
+
+<p>A simple visualization of values is presented below using the <strong>box plots</strong>. These visually indicate simple summary statistics of an independent variable (e.g. mean, median, top and bottom quantiles, min, max, etc). For example, for class 0</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;swatch&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;set_swatch&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;set_swatch&quot;
+</code></pre>
+
+<p>and class 1:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;swatch&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;set_swatch&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;set_swatch&quot;
+</code></pre>
+
+<h2>Step 4: Classification and Interpretation</h2>
+
+<p>For our assignent, we used three classification methods: <strong>logistic regression</strong>, <strong>classification and regression trees (CART)</strong> and <strong>machine learning (i.e. random forests)</strong>.</p>
+
+<p>Running a basic CART model with complexity control cp=0.01, leads to the following tree:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;rpart&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;rpart.plot&quot;
+</code></pre>
+
+<p>Where the key decisions criteria could be explained by the following table.</p>
+
+<pre><code>## Error in matrix(nrow = length(names(CART_tree$variable.importance)), ncol = 2): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(y) &lt;- c(&quot;Attribute&quot;, &quot;Name&quot;): object &#39;y&#39; not found
+</code></pre>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): object &#39;y&#39; not found
+</code></pre>
+
+<p>For example, this is how the tree would look like if we set <code>cp = 0.005</code>:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;rpart&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;rpart.plot&quot;
+</code></pre>
+
+<pre><code>## Error in matrix(nrow = length(names(CART_tree_large$variable.importance)), : object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(y) &lt;- c(&quot;Attribute&quot;, &quot;Name&quot;): object &#39;y&#39; not found
+</code></pre>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): object &#39;y&#39; not found
+</code></pre>
+
+<p>Below we present the probability our validation data belong to class 1. For the first few validation data observations, using the first CART above, is:</p>
+
+<pre><code>## Error in predict(CART_tree, estimation_data_nolabel): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(CART_tree_large, estimation_data_nolabel): object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(CART_tree, validation_data_nolabel): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(CART_tree_large, validation_data_nolabel): object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(CART_tree, test_data_nolabel): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(CART_tree_large, test_data_nolabel): object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.vector(estimation_Probability_class1_tree &gt; Probability_Threshold): object &#39;estimation_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.vector(estimation_Probability_class1_tree_large &gt; Probability_Threshold): object &#39;estimation_Probability_class1_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.vector(validation_Probability_class1_tree &gt; Probability_Threshold): object &#39;validation_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.vector(validation_Probability_class1_tree_large &gt; Probability_Threshold): object &#39;validation_Probability_class1_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.vector(test_Probability_class1_tree &gt; Probability_Threshold): object &#39;test_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.vector(test_Probability_class1_tree_large &gt; Probability_Threshold): object &#39;test_Probability_class1_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in rbind(validation_data[, dependent_variable], validation_Probability_class1_tree): object &#39;validation_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in rownames(Classification_Table) &lt;- c(&quot;Actual Class&quot;, &quot;Probability of Class 1&quot;): object &#39;Classification_Table&#39; not found
+</code></pre>
+
+<pre><code>## Error in ncol(Classification_Table): object &#39;Classification_Table&#39; not found
+</code></pre>
+
+<pre><code>## Error in rbind(validation_data[, dependent_variable], validation_Probability_class1_tree): object &#39;validation_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in rownames(Classification_Table_large) &lt;- c(&quot;Actual Class&quot;, &quot;Probability of Class 1&quot;): object &#39;Classification_Table_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in ncol(Classification_Table_large): object &#39;Classification_Table_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in t(round(Classification_Table, 2)): object &#39;Classification_Table&#39; not found
+</code></pre>
+
+<p><strong>Logistic Regression</strong> is a method similar to linear regression except that the dependent variable can be discrete (e.g. 0 or 1). <strong>Linear</strong> logistic regression estimates the coefficients of a linear model using the selected independent variables while optimizing a classification criterion. For example, this is the logistic regression parameters for our data:</p>
+
+<table><thead>
+<tr>
+<th align="left"></th>
+<th align="right">Estimate</th>
+<th align="right">Std. Error</th>
+<th align="right">z value</th>
+<th align="right">Pr(&gt;&#124;z&#124;)</th>
+</tr>
+</thead><tbody>
+<tr>
+<td align="left">(Intercept)</td>
+<td align="right">-4.1</td>
+<td align="right">1.0</td>
+<td align="right">-4.2</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">attr_o</td>
+<td align="right">0.6</td>
+<td align="right">0.1</td>
+<td align="right">9.7</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">sinc_o</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">-0.5</td>
+<td align="right">0.6</td>
+</tr>
+<tr>
+<td align="left">intel_o</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">-0.6</td>
+<td align="right">0.6</td>
+</tr>
+<tr>
+<td align="left">fun_o</td>
+<td align="right">0.3</td>
+<td align="right">0.1</td>
+<td align="right">4.1</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">amb_o</td>
+<td align="right">-0.2</td>
+<td align="right">0.1</td>
+<td align="right">-2.8</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">shar_o</td>
+<td align="right">0.3</td>
+<td align="right">0.0</td>
+<td align="right">6.1</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">field_cd</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">-1.1</td>
+<td align="right">0.3</td>
+</tr>
+<tr>
+<td align="left">race</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.2</td>
+<td align="right">0.9</td>
+</tr>
+<tr>
+<td align="left">goal</td>
+<td align="right">-0.1</td>
+<td align="right">0.1</td>
+<td align="right">-1.3</td>
+<td align="right">0.2</td>
+</tr>
+<tr>
+<td align="left">date</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.5</td>
+<td align="right">0.6</td>
+</tr>
+<tr>
+<td align="left">go_out</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">-0.6</td>
+<td align="right">0.6</td>
+</tr>
+<tr>
+<td align="left">career_c</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">1.0</td>
+<td align="right">0.3</td>
+</tr>
+<tr>
+<td align="left">sports</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">1.0</td>
+</tr>
+<tr>
+<td align="left">tvsports</td>
+<td align="right">-0.1</td>
+<td align="right">0.0</td>
+<td align="right">-2.7</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">exercise</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.2</td>
+<td align="right">0.8</td>
+</tr>
+<tr>
+<td align="left">dining</td>
+<td align="right">-0.1</td>
+<td align="right">0.1</td>
+<td align="right">-2.1</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td align="left">museums</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.2</td>
+<td align="right">0.8</td>
+</tr>
+<tr>
+<td align="left">art</td>
+<td align="right">0.2</td>
+<td align="right">0.1</td>
+<td align="right">1.9</td>
+<td align="right">0.1</td>
+</tr>
+<tr>
+<td align="left">hiking</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">1.4</td>
+<td align="right">0.2</td>
+</tr>
+<tr>
+<td align="left">gaming</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">1.3</td>
+<td align="right">0.2</td>
+</tr>
+<tr>
+<td align="left">clubbing</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.5</td>
+</tr>
+<tr>
+<td align="left">reading</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.4</td>
+<td align="right">0.7</td>
+</tr>
+<tr>
+<td align="left">tv</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.4</td>
+<td align="right">0.7</td>
+</tr>
+<tr>
+<td align="left">theater</td>
+<td align="right">-0.1</td>
+<td align="right">0.1</td>
+<td align="right">-1.3</td>
+<td align="right">0.2</td>
+</tr>
+<tr>
+<td align="left">movies</td>
+<td align="right">-0.1</td>
+<td align="right">0.1</td>
+<td align="right">-0.8</td>
+<td align="right">0.4</td>
+</tr>
+<tr>
+<td align="left">concerts</td>
+<td align="right">-0.1</td>
+<td align="right">0.1</td>
+<td align="right">-0.8</td>
+<td align="right">0.4</td>
+</tr>
+<tr>
+<td align="left">music</td>
+<td align="right">-0.1</td>
+<td align="right">0.1</td>
+<td align="right">-1.6</td>
+<td align="right">0.1</td>
+</tr>
+<tr>
+<td align="left">shopping</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">1.7</td>
+<td align="right">0.1</td>
+</tr>
+<tr>
+<td align="left">yoga</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">-1.1</td>
+<td align="right">0.3</td>
+</tr>
+</tbody></table>
+
+<p><strong>Random forests</strong> is the last method that we used. Below is the overview of key success factors when it comes to speed dating decision making.</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;randomForest&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;varImpPlot&quot;
+</code></pre>
+
+<pre><code>## Error in predict(forestFit, estimation_data[, independent_variables]): object &#39;forestFit&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(forestFit, validation_data[, independent_variables]): object &#39;forestFit&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(forestFit, test_data[, independent_variables]): object &#39;forestFit&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(forestFit, validation_data[, independent_variables], : object &#39;forestFit&#39; not found
+</code></pre>
+
+<pre><code>## Error in predict(forestFit, test_data[, independent_variables], type = &quot;prob&quot;): object &#39;forestFit&#39; not found
+</code></pre>
+
+<p>Beloow table shows us <strong>key drivers</strong> of the classification according to each of the used methods. </p>
+
+<pre><code>Error in eval(expr, envir, enclos): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>Error in gsub(&quot;\\IV&quot;, &quot; &quot;, names(CART_tree$variable.importance)): object &#39;CART_tree&#39; not found
+</code></pre>
+
+<pre><code>Error in eval(expr, envir, enclos): object &#39;tree_importance&#39; not found
+</code></pre>
+
+<pre><code>Error in eval(expr, envir, enclos): object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>Error in gsub(&quot;\\IV&quot;, &quot; &quot;, names(CART_tree_large$variable.importance)): object &#39;CART_tree_large&#39; not found
+</code></pre>
+
+<pre><code>Error in eval(expr, envir, enclos): object &#39;large_tree_importance&#39; not found
+</code></pre>
+
+<pre><code>Error in eval(expr, envir, enclos): could not find function &quot;importance&quot;
+</code></pre>
+
+<pre><code>Error in eval(expr, envir, enclos): object &#39;forests_importance&#39; not found
+</code></pre>
+
+<pre><code>Error in cbind(tree_importance_final, large_tree_importance_final, log_importance, : object &#39;forests_importance&#39; not found
+</code></pre>
+
+<pre><code>Error in colnames(Importance_table) &lt;- c(&quot;CART 1&quot;, &quot;CART 2&quot;, &quot;Logistic Regr.&quot;, : object &#39;Importance_table&#39; not found
+</code></pre>
+
+<pre><code>Error in rownames(Importance_table) &lt;- rownames(log_importance): object &#39;Importance_table&#39; not found
+</code></pre>
+
+<pre><code>Error in inherits(x, &quot;list&quot;): object &#39;Importance_table&#39; not found
+</code></pre>
+
+<p>In general we do not see very significant differences across all used methods which makes sense.</p>
+
+<h2>Step 5: Validation accuracy</h2>
+
+<h3>1.  Hit ratio</h3>
+
+<p>Below is the percentage of the observations that have been correctly classified (the predicted is the same as the actual class), i.e. exceeded the probability threshold  50% for the validation data:</p>
+
+<pre><code>## Error in rbind(validation_prediction_class_tree, validation_prediction_class_tree_large, : object &#39;validation_prediction_class_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in rbind(100 * sum(validation_prediction_class_tree == validation_actual)/length(validation_actual), : object &#39;validation_prediction_class_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(validation_hit_rates) &lt;- &quot;Hit Ratio&quot;: object &#39;validation_hit_rates&#39; not found
+</code></pre>
+
+<pre><code>## Error in rownames(validation_hit_rates) &lt;- c(&quot;First CART&quot;, &quot;Second CART&quot;, : object &#39;validation_hit_rates&#39; not found
+</code></pre>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): object &#39;validation_hit_rates&#39; not found
+</code></pre>
+
+<p>while for the estimation data the hit rates are:</p>
+
+<pre><code>## Error in rbind(estimation_prediction_class_tree, estimation_prediction_class_tree_large, : object &#39;estimation_prediction_class_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in rbind(100 * sum(estimation_prediction_class_tree == estimation_actual)/length(estimation_actual), : object &#39;estimation_prediction_class_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(estimation_hit_rates) &lt;- &quot;Hit Ratio&quot;: object &#39;estimation_hit_rates&#39; not found
+</code></pre>
+
+<pre><code>## Error in rownames(estimation_hit_rates) &lt;- c(&quot;First CART&quot;, &quot;Second CART&quot;, : object &#39;estimation_hit_rates&#39; not found
+</code></pre>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): object &#39;estimation_hit_rates&#39; not found
+</code></pre>
+
+<p>A simple benchmark to compare the performance of a classification model against is the <strong>Maximum Chance Criterion</strong>. This measures the proportion of the class with the largest size. For our validation data the largest group is people who do not intent do purchase a boat: 61 out of 135 people). Clearly without doing any discriminant analysis, if we classified all individuals into the largest group,  we could get a hit-rate of 45.19% - without doing any work. </p>
+
+<p>In our case this particular criterion is met for all the methods that were used.</p>
+
+<h3>2. Confusion matrix</h3>
+
+<p>The confusion matrix shows for each class the number (or percentage) of the  data that are correctly classified for that class. For example for the method above with the highest hit rate in the validation data (among logistic regression, 2 CART models and random forests), the confusion matrix for the validation data is:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_predictions&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_prediction_best&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_prediction_best&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_prediction_best&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_prediction_best&#39; not found
+</code></pre>
+
+<table><thead>
+<tr>
+<th align="left"></th>
+<th align="right">Predicted 1</th>
+<th align="right">Predicted 0</th>
+</tr>
+</thead><tbody>
+<tr>
+<td align="left">Actual 1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Actual 0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody></table>
+
+<h3>3. ROC curve</h3>
+
+<p>The ROC curves for the validation data for all four methods is below:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test1@x.values): object &#39;test1&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df1) &lt;- c(&quot;False Positive rate CART 1&quot;, &quot;True Positive CART 1&quot;): object &#39;df1&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test2@x.values): object &#39;test2&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df2) &lt;- c(&quot;False Positive rate log reg&quot;, &quot;True Positive log reg&quot;): object &#39;df2&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test3@x.values): object &#39;test3&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df3) &lt;- c(&quot;False Positive rate CART 2&quot;, &quot;True Positive CART 2&quot;): object &#39;df3&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test3@x.values): object &#39;test3&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df4) &lt;- c(&quot;False Positive rate y=x&quot;, &quot;True Positive y=x&quot;): object &#39;df4&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test5@x.values): object &#39;test5&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df5) &lt;- c(&quot;False Positive rate rand forests&quot;, &quot;True Positive rand forests&quot;): object &#39;df5&#39; not found
+</code></pre>
+
+<pre><code>## Error in lapply(list(df1, df2, df3, df4, df5), function(df) {: object &#39;df1&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<h3>4. Lift curve</h3>
+
+<p>The Lift curves for the validation data for our four classifiers are the following:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in unique(c(0, 1, probs)): object &#39;probs&#39; not found
+</code></pre>
+
+<pre><code>## Error in lapply(xaxis, function(prob) {: object &#39;xaxis&#39; not found
+</code></pre>
+
+<pre><code>## Error in data.frame(`CART 1 % of validation data` = res[1, ], `CART 1 % of class 1` = res[2, : object &#39;res&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_Probability_class1_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in unique(c(0, 1, probs)): object &#39;probs&#39; not found
+</code></pre>
+
+<pre><code>## Error in lapply(xaxis, function(prob) {: object &#39;xaxis&#39; not found
+</code></pre>
+
+<pre><code>## Error in data.frame(`CART 2 % of validation data` = res[1, ], `CART 2 % of class 1` = res[2, : object &#39;res&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;validation_Probability_random_forests&#39; not found
+</code></pre>
+
+<pre><code>## Error in lapply(list(frame1, frame2, frame3, frame4, frame5), function(df) {: object &#39;frame1&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<h2>Step 6: Test Accuracy</h2>
+
+<p>Below are presented hit ratios for all four methods based on test dataset:</p>
+
+<pre><code>## Error in rbind(test_prediction_class_tree, test_prediction_class_tree_large, : object &#39;test_prediction_class_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in rbind(100 * sum(test_prediction_class_tree == test_actual)/length(test_actual), : object &#39;test_prediction_class_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(test_hit_rates) &lt;- &quot;Hit Ratio&quot;: object &#39;test_hit_rates&#39; not found
+</code></pre>
+
+<pre><code>## Error in rownames(test_hit_rates) &lt;- c(&quot;First CART&quot;, &quot;Second CART&quot;, &quot;Logistic Regression&quot;, : object &#39;test_hit_rates&#39; not found
+</code></pre>
+
+<pre><code>## Error in inherits(x, &quot;list&quot;): object &#39;test_hit_rates&#39; not found
+</code></pre>
+
+<p>The Confusion Matrix for the model with the best validation data hit ratio above:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_predictions&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_prediction_best&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_prediction_best&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_prediction_best&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_prediction_best&#39; not found
+</code></pre>
+
+<table><thead>
+<tr>
+<th align="left"></th>
+<th align="right">Predicted 1</th>
+<th align="right">Predicted 0</th>
+</tr>
+</thead><tbody>
+<tr>
+<td align="left">Actual 1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Actual 0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody></table>
+
+<p>ROC curves for the test data:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prediction&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test@x.values): object &#39;test&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df1) &lt;- c(&quot;False Positive rate CART 1&quot;, &quot;True Positive CART 1&quot;): object &#39;df1&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test2@x.values): object &#39;test2&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df2) &lt;- c(&quot;False Positive rate CART 2&quot;, &quot;True Positive CART 2&quot;): object &#39;df2&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test1@x.values): object &#39;test1&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df3) &lt;- c(&quot;False Positive rate log reg&quot;, &quot;True Positive log reg&quot;): object &#39;df3&#39; not found
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test3@x.values): object &#39;test3&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df4) &lt;- c(&quot;False Positive rate y=x&quot;, &quot;True Positive y=x&quot;): object &#39;df4&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;performance&quot;
+</code></pre>
+
+<pre><code>## Error in as.data.frame(test5@x.values): object &#39;test5&#39; not found
+</code></pre>
+
+<pre><code>## Error in colnames(df5) &lt;- c(&quot;False Positive rate rand forests&quot;, &quot;True Positive rand forests&quot;): object &#39;df5&#39; not found
+</code></pre>
+
+<pre><code>## Error in lapply(list(df1, df2, df3, df4, df5), function(df) {: object &#39;df1&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+<p>Lift Curves for the test data:</p>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_Probability_class1_tree&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_Probability_class1_tree_large&#39; not found
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;test_Probability_random_forests&#39; not found
+</code></pre>
+
+<pre><code>## Error in FUN(X[[i]], ...): could not find function &quot;melt&quot;
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;ggplot&quot;
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='NA'>
+         1
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="http://slidifylibraries2.googlecode.com/git/inst/libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
